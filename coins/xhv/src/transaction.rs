@@ -10,6 +10,8 @@ use crate::{
   ringct::{RctPrunable, RctSignatures},
 };
 
+pub use monero_serai::transaction::Timelock;
+
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Input {
   Gen(u64),
@@ -56,100 +58,64 @@ impl Input {
   }
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub enum Asset {
+  Xhv,
+  XUsd,
+  XAsset(string),
+}
+
 // Doesn't bother moving to an enum for the unused Script classes
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Output {
+  pub asset: Asset,
   pub amount: u64,
   pub key: CompressedEdwardsY,
-  pub view_tag: Option<u8>,
+  pub timelock: Timelock,
 }
 
 impl Output {
-  pub(crate) fn fee_weight() -> usize {
-    1 + 1 + 32 + 1
+  pub fn fee_weight() -> usize {
+    1 + 5 + 1 + 32 + 8
   }
 
   pub fn serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
     write_varint(&self.amount, w)?;
-    w.write_all(&[2 + (if self.view_tag.is_some() { 1 } else { 0 })])?;
+    w.write_all(&[2 + (if matches!(self.asset, Asset::Xhv) { 0 } else if matches!(self.asset, Asset::XUsd) { 1 } else { 2 })])?;
     w.write_all(&self.key.to_bytes())?;
-    if let Some(view_tag) = self.view_tag {
-      w.write_all(&[view_tag])?;
+    if let Asset::XAsset(asset) = self.asset {
+      w.write_vec(write_byte, asset.as_bytes(), w)?;
     }
     Ok(())
   }
 
-  pub fn deserialize<R: std::io::Read>(r: &mut R) -> std::io::Result<Output> {
+  pub(crate) fn deserialize<R: std::io::Read>(r: &mut R) -> std::io::Result<Output> {
     let amount = read_varint(r)?;
-    let view_tag = match read_byte(r)? {
-      2 => false,
-      3 => true,
-      _ => Err(std::io::Error::new(
-        std::io::ErrorKind::Other,
-        "Tried to deserialize unknown/unused output type",
-      ))?,
-    };
-
+    let asset = read_byte(r)?;
+    let key = CompressedEdwardsY(read_bytes(r)?);
     Ok(Output {
-      amount,
-      key: CompressedEdwardsY(read_bytes(r)?),
-      view_tag: if view_tag { Some(read_byte(r)?) } else { None },
-    })
-  }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Zeroize)]
-pub enum Timelock {
-  None,
-  Block(usize),
-  Time(u64),
-}
-
-impl Timelock {
-  fn from_raw(raw: u64) -> Timelock {
-    if raw == 0 {
-      Timelock::None
-    } else if raw < 500_000_000 {
-      Timelock::Block(usize::try_from(raw).unwrap())
-    } else {
-      Timelock::Time(raw)
-    }
-  }
-
-  pub(crate) fn fee_weight() -> usize {
-    8
-  }
-
-  fn serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
-    write_varint(
-      &match self {
-        Timelock::None => 0,
-        Timelock::Block(block) => (*block).try_into().unwrap(),
-        Timelock::Time(time) => *time,
+      asset: match asset {
+        2 => Asset::Xhv,
+        3 => Asset::XUsd,
+        4 => Asset::XAsset(read_vec(read_byte(r)?, r))
       },
-      w,
-    )
-  }
-}
-
-impl PartialOrd for Timelock {
-  fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    match (self, other) {
-      (Timelock::None, _) => Some(Ordering::Less),
-      (Timelock::Block(a), Timelock::Block(b)) => a.partial_cmp(b),
-      (Timelock::Time(a), Timelock::Time(b)) => a.partial_cmp(b),
-      _ => None,
-    }
+      amount,
+      key,
+      timelock: Timelock::from_raw(u64::MAX) // Stub value since this isn't actually present here
+    })
   }
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct TransactionPrefix {
   pub version: u64,
-  pub timelock: Timelock,
   pub inputs: Vec<Input>,
   pub outputs: Vec<Output>,
   pub extra: Vec<u8>,
+
+  pub pricing_record: u64,
+  pub burnt: u64,
+  pub minted: u64,
 }
 
 impl TransactionPrefix {
@@ -161,27 +127,50 @@ impl TransactionPrefix {
       1 +
       (outputs * Output::fee_weight()) +
       varint_len(extra) +
-      extra
+      extra +
+      8 + 8 + 8
   }
 
   pub fn serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
     write_varint(&self.version, w)?;
-    self.timelock.serialize(w)?;
     write_vec(Input::serialize, &self.inputs, w)?;
     write_vec(Output::serialize, &self.outputs, w)?;
     write_varint(&self.extra.len().try_into().unwrap(), w)?;
     w.write_all(&self.extra)
+
+    write_varint(&self.pricing_record, w)?;
+    write_varint(&self.outputs.len().try_into().unwrap(), w)?;
+    for output in self.outputs {
+      output.timelock.serialize(w)?;
+    }
+    write_varint(&self.burnt, w)?;
+    write_varint(&self.minted, w)?;
   }
 
   pub fn deserialize<R: std::io::Read>(r: &mut R) -> std::io::Result<TransactionPrefix> {
     let mut prefix = TransactionPrefix {
       version: read_varint(r)?,
-      timelock: Timelock::from_raw(read_varint(r)?),
       inputs: read_vec(Input::deserialize, r)?,
       outputs: read_vec(Output::deserialize, r)?,
-      extra: vec![],
+      extra: read_vec(read_byte, r)?,
+
+      pricing_record: read_varint(r)?,
+      burnt: 0,
+      minted: 0,
     };
-    prefix.extra = read_vec(read_byte, r)?;
+
+    if read_varint(r)? != prefix.outputs.len().try_into().unwrap() {
+      Err(std::io::Error::new(
+        std::io::ErrorKind::Other,
+        "Incorrect amount of timelocks",
+      ))?
+    }
+    for output in prefix.outputs.iter_mut() {
+      output.timelock = Timelock::from_raw(read_varint(r)?);
+    }
+
+    prefix.burnt = read_varint(r)?;
+    prefix.minted = read_varint(r)?;
     Ok(prefix)
   }
 }
