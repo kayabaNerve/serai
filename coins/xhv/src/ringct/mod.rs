@@ -62,7 +62,7 @@ pub struct RctSignatures {
 
 impl RctSignatures {
   pub(crate) fn fee_weight(protocol: Protocol, inputs: usize, outputs: usize) -> usize {
-    RctBase::fee_weight(outputs) + RctPrunable::fee_weight(monero_serai::Protocol::v14, inputs, outputs)
+    RctBase::fee_weight(outputs) + RctPrunable::fee_weight(protocol.monero(), inputs, outputs)
   }
 
   pub fn serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {

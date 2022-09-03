@@ -26,24 +26,21 @@ mod tests;
 #[allow(non_camel_case_types)]
 pub enum Protocol {
   Unsupported,
-  v14,
-  v16,
+  v19,
 }
 
 impl Protocol {
   pub fn ring_len(&self) -> usize {
     match self {
       Protocol::Unsupported => panic!("Unsupported protocol version"),
-      Protocol::v14 => 11,
-      Protocol::v16 => 16,
+      Protocol::v19 => 11,
     }
   }
 
-  pub fn bp_plus(&self) -> bool {
+  pub fn monero(&self) -> monero_serai::Protocol {
     match self {
       Protocol::Unsupported => panic!("Unsupported protocol version"),
-      Protocol::v14 => false,
-      Protocol::v16 => true,
+      Protocol::v19 => monero_serai::Protocol::v14,
     }
   }
 }

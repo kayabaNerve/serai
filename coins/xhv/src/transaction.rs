@@ -15,15 +15,15 @@ pub use monero_serai::transaction::Timelock;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Input {
   Gen(u64),
-  ToKey { amount: u64, key_offsets: Vec<u64>, key_image: EdwardsPoint },
+  ToKey { asset: Asset, amount: u64, key_offsets: Vec<u64>, key_image: EdwardsPoint },
 }
 
 impl Input {
   // Worst-case predictive len
-  pub(crate) fn fee_weight(ring_len: usize) -> usize {
+  pub fn fee_weight(ring_len: usize) -> usize {
     // Uses 1 byte for the VarInt amount due to amount being 0
     // Uses 1 byte for the VarInt encoding of the length of the ring as well
-    1 + 1 + 1 + (8 * ring_len) + 32
+    1 + 5 + 1 + 1 + (8 * ring_len) + 32
   }
 
   pub fn serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
@@ -34,7 +34,7 @@ impl Input {
       }
 
       Input::ToKey { amount, key_offsets, key_image } => {
-        w.write_all(&[2])?;
+        w.write_all(&[2 + (0 if xhv, 1 or 2? if usd, 3 if xasset)])?;
         write_varint(amount, w)?;
         write_vec(write_varint, key_offsets, w)?;
         write_point(key_image, w)
