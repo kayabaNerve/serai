@@ -1,6 +1,6 @@
-# monero-serai
+# haven-serai
 
-A modern Monero transaction library intended for usage in wallets. It prides
+A modern Haven transaction library intended for usage in wallets. It prides
 itself on accuracy, correctness, and removing common pit falls developers may
 face.
 

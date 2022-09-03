@@ -15,7 +15,7 @@ use crate::{
   ringct::{
     generate_key_image,
     clsag::{ClsagError, ClsagInput, Clsag},
-    bulletproofs::{MAX_OUTPUTS, Bulletproofs},
+    bulletproofs::Bulletproofs,
     RctBase, RctPrunable, RctSignatures,
   },
   transaction::{Input, Output, Timelock, TransactionPrefix, Transaction},
@@ -32,6 +32,8 @@ use crate::frost::MultisigError;
 mod multisig;
 #[cfg(feature = "multisig")]
 pub use multisig::TransactionMachine;
+
+const MAX_OUTPUTS: usize = 16;
 
 #[allow(non_snake_case)]
 #[derive(Clone, PartialEq, Eq, Debug, Zeroize, ZeroizeOnDrop)]
@@ -133,7 +135,7 @@ async fn prepare_inputs<R: RngCore + CryptoRng>(
     signable.push((
       spend + input.key_offset(),
       generate_key_image(spend + input.key_offset()),
-      ClsagInput::new(input.commitment().clone(), decoys[i].clone())
+      ClsagInput::new(input.commitment().clone(), decoys[i].clone().into())
         .map_err(TransactionError::ClsagError)?,
     ));
 
@@ -339,6 +341,7 @@ impl SignableTransaction {
             fee: self.fee,
             ecdh_info,
             commitments: commitments.iter().map(|commitment| commitment.calculate()).collect(),
+            mask_sums: [Scalar::zero(), Scalar::zero()],
           },
           prunable: RctPrunable::Clsag {
             bulletproofs: vec![bp],

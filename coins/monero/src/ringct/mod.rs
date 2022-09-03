@@ -28,7 +28,7 @@ pub struct RctBase {
 }
 
 impl RctBase {
-  pub(crate) fn fee_weight(outputs: usize) -> usize {
+  pub fn fee_weight(outputs: usize) -> usize {
     1 + 8 + (outputs * (8 + 32))
   }
 
@@ -87,7 +87,7 @@ impl RctPrunable {
     }
   }
 
-  pub(crate) fn fee_weight(protocol: Protocol, inputs: usize, outputs: usize) -> usize {
+  pub fn fee_weight(protocol: Protocol, inputs: usize, outputs: usize) -> usize {
     1 + Bulletproofs::fee_weight(protocol.bp_plus(), outputs) +
       (inputs * (Clsag::fee_weight(protocol.ring_len()) + 32))
   }
@@ -127,7 +127,7 @@ impl RctPrunable {
     })
   }
 
-  pub(crate) fn signature_serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
+  pub fn signature_serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
     match self {
       RctPrunable::Null => panic!("Serializing RctPrunable::Null for a signature"),
       RctPrunable::Clsag { bulletproofs, .. } => {
@@ -144,7 +144,7 @@ pub struct RctSignatures {
 }
 
 impl RctSignatures {
-  pub(crate) fn fee_weight(protocol: Protocol, inputs: usize, outputs: usize) -> usize {
+  pub fn fee_weight(protocol: Protocol, inputs: usize, outputs: usize) -> usize {
     RctBase::fee_weight(outputs) + RctPrunable::fee_weight(protocol, inputs, outputs)
   }
 

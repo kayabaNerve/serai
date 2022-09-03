@@ -1,7 +1,7 @@
 [package]
-name = "monero-serai"
+name = "haven-serai"
 version = "0.1.0"
-description = "A modern Monero transaction library"
+description = "A modern Haven transaction library"
 license = "MIT"
 authors = ["Luke Parker <lukeparker5132@gmail.com>"]
 edition = "2021"
@@ -19,7 +19,6 @@ rand_distr = "0.4"
 zeroize = { version = "1.3", features = ["zeroize_derive"] }
 subtle = "2.4"
 
-tiny-keccak = { version = "2", features = ["keccak"] }
 blake2 = { version = "0.10", optional = true }
 
 curve25519-dalek = { version = "3", features = ["std"] }
@@ -32,7 +31,8 @@ transcript = { package = "flexible-transcript", path = "../../crypto/transcript"
 frost = { package = "modular-frost", path = "../../crypto/frost", features = ["ed25519"], optional = true }
 dleq = { path = "../../crypto/dleq", features = ["serialize"], optional = true }
 
-monero-generators = { path = "generators" }
+monero-generators = { path = "../monero/generators" }
+monero-serai = { path = "../monero" }
 
 hex = "0.4"
 serde = { version = "1.0", features = ["derive"] }
@@ -48,7 +48,6 @@ multisig = ["rand_chacha", "blake2", "transcript", "frost", "dleq"]
 
 [build-dependencies]
 dalek-ff-group = { path = "../../crypto/dalek-ff-group" }
-monero-generators = { path = "generators" }
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }

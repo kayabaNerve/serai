@@ -19,8 +19,8 @@ use address::{Network, AddressType, AddressMeta, Address};
 mod scan;
 pub use scan::SpendableOutput;
 
-pub(crate) mod decoys;
-pub(crate) use decoys::Decoys;
+mod decoys;
+pub use decoys::Decoys;
 
 mod send;
 pub use send::{Fee, TransactionError, SignableTransaction};

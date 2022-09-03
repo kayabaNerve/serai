@@ -122,6 +122,12 @@ pub struct Decoys {
   pub ring: Vec<[EdwardsPoint; 2]>,
 }
 
+impl Into<monero_serai::wallet::Decoys> for Decoys {
+  fn into(self) -> monero_serai::wallet::Decoys {
+    monero_serai::wallet::Decoys { i: self.i, offsets: self.offsets.clone(), ring: self.ring.clone() }
+  }
+}
+
 impl Decoys {
   pub fn len(&self) -> usize {
     self.offsets.len()

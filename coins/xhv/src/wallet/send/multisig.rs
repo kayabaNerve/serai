@@ -331,7 +331,7 @@ impl SignMachine<Transaction> for TransactionSignMachine {
       });
 
       *value.3.write().unwrap() = Some(ClsagDetails::new(
-        ClsagInput::new(value.1.commitment().clone(), value.2).map_err(|_| {
+        ClsagInput::new(value.1.commitment().clone(), value.2.into()).map_err(|_| {
           panic!("Signing an input which isn't present in the ring we created for it")
         })?,
         mask,

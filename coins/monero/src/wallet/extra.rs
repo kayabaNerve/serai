@@ -162,7 +162,7 @@ impl Extra {
   }
 
   #[rustfmt::skip]
-  pub(crate) fn fee_weight(outputs: usize, data: Option<&Vec<u8>>) -> usize {
+  pub fn fee_weight(outputs: usize, data: Option<&Vec<u8>>) -> usize {
     // PublicKey, key
     (1 + 32) +
     // PublicKeys, length, additional keys

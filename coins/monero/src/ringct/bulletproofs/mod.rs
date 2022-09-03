@@ -31,7 +31,7 @@ pub enum Bulletproofs {
 }
 
 impl Bulletproofs {
-  pub(crate) fn fee_weight(plus: bool, outputs: usize) -> usize {
+  pub fn fee_weight(plus: bool, outputs: usize) -> usize {
     let fields = if plus { 6 } else { 9 };
 
     #[allow(non_snake_case)]
@@ -120,7 +120,7 @@ impl Bulletproofs {
     }
   }
 
-  pub(crate) fn signature_serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
+  pub fn signature_serialize<W: std::io::Write>(&self, w: &mut W) -> std::io::Result<()> {
     self.serialize_core(w, |points, w| write_raw_vec(write_point, points, w))
   }
 

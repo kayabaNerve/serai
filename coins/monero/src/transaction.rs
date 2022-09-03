@@ -18,7 +18,7 @@ pub enum Input {
 
 impl Input {
   // Worst-case predictive len
-  pub(crate) fn fee_weight(ring_len: usize) -> usize {
+  pub fn fee_weight(ring_len: usize) -> usize {
     // Uses 1 byte for the VarInt amount due to amount being 0
     // Uses 1 byte for the VarInt encoding of the length of the ring as well
     1 + 1 + 1 + (8 * ring_len) + 32
@@ -65,7 +65,7 @@ pub struct Output {
 }
 
 impl Output {
-  pub(crate) fn fee_weight() -> usize {
+  pub fn fee_weight() -> usize {
     1 + 1 + 32 + 1
   }
 
@@ -116,7 +116,7 @@ impl Timelock {
     }
   }
 
-  pub(crate) fn fee_weight() -> usize {
+  pub fn fee_weight() -> usize {
     8
   }
 
@@ -153,7 +153,7 @@ pub struct TransactionPrefix {
 }
 
 impl TransactionPrefix {
-  pub(crate) fn fee_weight(ring_len: usize, inputs: usize, outputs: usize, extra: usize) -> usize {
+  pub fn fee_weight(ring_len: usize, inputs: usize, outputs: usize, extra: usize) -> usize {
     // Assumes Timelock::None since this library won't let you create a TX with a timelock
     1 + 1 +
       varint_len(inputs) +
@@ -193,7 +193,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
-  pub(crate) fn fee_weight(
+  pub fn fee_weight(
     protocol: Protocol,
     inputs: usize,
     outputs: usize,

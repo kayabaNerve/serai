@@ -2848,6 +2848,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "haven-serai"
+version = "0.1.0"
+dependencies = [
+ "base58-monero",
+ "blake2",
+ "curve25519-dalek 3.2.0",
+ "dalek-ff-group",
+ "dleq",
+ "flexible-transcript",
+ "group",
+ "hex",
+ "hex-literal",
+ "lazy_static",
+ "modular-frost",
+ "monero-epee-bin-serde",
+ "monero-generators",
+ "monero-serai",
+ "multiexp",
+ "rand 0.8.5",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.3",
+ "rand_distr",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "subtle",
+ "thiserror",
+ "tokio",
+ "zeroize",
+]
+
+[[package]]
 name = "heck"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
