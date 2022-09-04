@@ -19,6 +19,7 @@ pub mod frost;
 mod serialize;
 
 pub mod ringct;
+use ringct::raw_hash_to_point;
 
 pub mod transaction;
 pub mod block;
@@ -71,8 +72,16 @@ impl Commitment {
     Commitment { mask: Scalar::one(), amount: 0 }
   }
 
-  pub fn new(mask: Scalar, amount: u64) -> Commitment {
+  pub fn raw(mask: Scalar, amount: u64) -> Commitment {
     Commitment { mask, amount }
+  }
+
+  pub fn new(mask: Scalar, amount: u64) -> Commitment {
+    #[allow(non_snake_case)]
+    let C = Commitment::raw(mask, amount).calculate().compress().to_bytes();
+    #[allow(non_snake_case)]
+    let D = (mask * raw_hash_to_point(hash(b"Switch Commitment"))).compress().to_bytes();
+    Commitment::raw(mask + hash_to_scalar(&[C.as_ref(), D.as_ref()].concat()), amount)
   }
 
   pub fn calculate(&self) -> EdwardsPoint {

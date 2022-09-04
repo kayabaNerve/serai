@@ -210,7 +210,7 @@ impl Clsag {
   ) -> (Clsag, EdwardsPoint, Scalar, Scalar) {
     let r: usize = input.decoys.i.into();
 
-    let pseudo_out = Commitment::new(mask, input.commitment.amount).calculate();
+    let pseudo_out = Commitment::raw(mask, input.commitment.amount).calculate();
     let z = input.commitment.mask - mask;
 
     let H = hash_to_point(input.decoys.ring[r][0]);
