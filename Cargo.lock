@@ -4517,6 +4517,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "minimal-proof25519"
+version = "0.1.0"
+dependencies = [
+ "crypto-bigint",
+ "dalek-ff-group",
+ "digest 0.10.3",
+ "ff",
+ "generic-array 0.14.6",
+ "group",
+ "hex",
+ "hex-literal",
+ "lazy_static",
+ "rand_core 0.6.3",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
