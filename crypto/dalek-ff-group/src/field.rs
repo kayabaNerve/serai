@@ -2,6 +2,7 @@ use core::ops::{Add, AddAssign, Sub, SubAssign, Neg, Mul, MulAssign};
 
 use rand_core::RngCore;
 
+use zeroize::Zeroize;
 use subtle::{
   Choice, CtOption, ConstantTimeEq, ConstantTimeLess, ConditionallyNegatable,
   ConditionallySelectable,
@@ -21,7 +22,7 @@ const WIDE_MODULUS: U512 = U512::from_be_hex(concat!(
   "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed"
 ));
 
-#[derive(Clone, Copy, PartialEq, Eq, Default, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
 pub struct FieldElement(U256);
 
 pub const MOD_3_8: FieldElement =
