@@ -38,13 +38,19 @@ pub struct Point {
 }
 
 lazy_static! {
-  static ref G: Point = Point { x: G_X, y: recover_y(G_X).unwrap(), z: FieldElement::one() };
+  static ref G: Point =
+    (Point { x: G_X, y: recover_y(G_X).unwrap(), z: FieldElement::one() }).mul_by_cofactor();
 }
 
 impl ConstantTimeEq for Point {
   fn ct_eq(&self, other: &Self) -> Choice {
-    // TODO: Replace with an efficient equality formula
-    self.to_bytes().ct_eq(&other.to_bytes())
+    let z1_2 = self.z.square();
+    let z2_2 = other.z.square();
+    let u1 = self.x * z2_2;
+    let u2 = other.x * z1_2;
+    let s1 = self.y * other.z * z2_2;
+    let s2 = other.y * self.z * z1_2;
+    u1.ct_eq(&u2) & s1.ct_eq(&s2)
   }
 }
 
@@ -73,24 +79,21 @@ impl Add for Point {
     // This is the algorithm. The question is why the algorithm doesn't work.
     // It being the algorithm was verified via grabbing its supplied code in the addendum and
     // verifying the consistency.
-    // It mey be faster than the current algorithm, which multiplies and doubles to remain constant
+    // It may be faster than the current algorithm, which multiplies and doubles to remain constant
     // time.
     /*
     let t0 = self.x * other.x;
     let t1 = self.y * other.y;
     let t2 = self.z * other.z;
 
-    let t3 = {
-      let t3 = self.x + self.y;
-      (t3 * (other.x + other.y)) - (t0 + t1)
-    };
+    let t3 = ((self.x + self.y) * (other.x + other.y)) - (t0 + t1);
 
     let t4 = ((self.y + self.z) * (other.y + other.z)) - (t1 + t2);
 
     let y = (self.x + self.z) * (other.x + other.z) - (t0 + t2);
 
-    let t0 = t0 + t0 + t0;
-    let t2 = t2 * FieldElement::from(3u8);
+    let t0 = t0.double() + t0;
+    let t2 = t2.double() + t2;
     let z = t1 + t2;
     let t1 = t1 - t2;
     let y = y * FieldElement::from(3u8);
@@ -101,9 +104,11 @@ impl Add for Point {
     Point { x, y, z }
     */
 
-    let zero = CtOption::new(self, other.x.is_zero() | other.y.is_zero());
-    let zero = zero.or_else(|| CtOption::new(other, self.x.is_zero() | self.y.is_zero()));
+    // Return the point which isn't identity if one is
+    let res = CtOption::new(self, other.x.is_zero());
+    let res = res.or_else(|| CtOption::new(other, self.x.is_zero()));
 
+    // Variables needed for both addition and equality checking
     let z1_2 = self.z.square();
     let z2_2 = other.z.square();
 
@@ -112,22 +117,35 @@ impl Add for Point {
     let s1 = self.y * other.z * z2_2;
     let s2 = other.y * self.z * z1_2;
 
+    // Return double if they're equal
+    let eq = u1.ct_eq(&u2) & s1.ct_eq(&s2);
+    let double = self.double();
+    let res = res.or_else(|| CtOption::new(double, eq));
+
+    // Return identity if other == -self
+    let neg_eq = u1.ct_eq(&u2) & s1.ct_eq(&-s2);
+    let res = res.or_else(|| CtOption::new(Point::identity(), neg_eq));
+
+    // Finish the addition
+    // add-2007-bl
     let h = u2 - u1;
-    let r = s2 - s1;
 
-    let hh = h.square();
-    let hhh = hh * h;
-    let v = u1 * hh;
+    let i = h.double().square();
+    let j = h * i;
+    let r = (s2 - s1).double();
+    let v = u1 * i;
 
-    let x3 = r.square() - hhh - v.double();
+    let x = r.square() - j - v.double();
     let candidate = Point {
-      x: x3,
-      y: (r * (v - x3)) - (s1 * hhh),
-      z: (self.z * other.z) * h
+      x,
+      y: (r * (v - x)) - (s1.double() * j),
+      z: ((self.z + other.z).square() - z1_2 - z2_2) * h,
     };
 
-    let alternate = Point::conditional_select(&Point::identity(), &self.double(), r.is_zero());
-    zero.or_else(|| CtOption::new(Point::conditional_select(&candidate, &alternate, h.is_zero()), 1.into())).unwrap()
+    let res = res.or_else(|| CtOption::new(candidate, 1.into())).unwrap();
+
+    // TODO: Is this proper? It's a mirror of the first check
+    Point::conditional_select(&res, &Point::identity(), res.x.is_zero())
   }
 }
 
@@ -288,6 +306,7 @@ impl MulAssign<&Scalar> for Point {
 impl GroupEncoding for Point {
   type Repr = <FieldElement as PrimeField>::Repr;
 
+  // TODO: Ban torsion OR use a Ristretto-esque encoding
   fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
     // Extract and clear the sign bit
     let sign = Choice::from(bytes[32] >> 7);
@@ -301,7 +320,15 @@ impl GroupEncoding for Point {
         // Negate if the sign doesn't match
         y.conditional_negate(!y.is_odd().ct_eq(&sign));
         let infinity = x.ct_eq(&FieldElement::zero());
-        let point = Point { x, y, z: FieldElement::conditional_select(&FieldElement::one(), &FieldElement::zero(), infinity) };
+        let point = Point {
+          x,
+          y,
+          z: FieldElement::conditional_select(
+            &FieldElement::one(),
+            &FieldElement::zero(),
+            infinity,
+          ),
+        };
         let negative_infinity = infinity & sign;
         CtOption::new(point, !negative_infinity)
       })
@@ -329,9 +356,30 @@ impl GroupEncoding for Point {
 
 impl PrimeGroup for Point {}
 
+impl Point {
+  pub fn mul_by_cofactor(&self) -> Point {
+    // TODO: Use a re-addition formula
+    let two = self.double();
+    two.double() + two
+  }
+}
+
 #[test]
 fn serialize() {
-  Point::from_bytes(&Point::generator().to_bytes()).unwrap();
+  assert_eq!(Scalar::from_repr(Scalar::one().to_repr()).unwrap(), Scalar::one());
+  assert_eq!(Point::from_bytes(&Point::generator().to_bytes()).unwrap(), Point::generator());
+}
+
+#[test]
+fn eq() {
+  assert_eq!(Point::identity(), Point::identity());
+  assert_eq!(Point::generator(), Point::generator());
+  assert!(Point::generator() != Point::identity());
+}
+
+#[test]
+fn inverse() {
+  assert_eq!(Scalar::one().invert().unwrap(), Scalar::one());
 }
 
 #[test]
@@ -339,6 +387,8 @@ fn add() {
   let two = Point::generator() + Point::generator();
   assert_eq!(Point::generator().double(), two);
   assert_eq!(two - Point::generator(), Point::generator());
+  assert_eq!(Point::generator() - Point::generator(), Point::identity());
+  assert_eq!([Point::generator(), Point::generator()].iter().sum::<Point>(), two);
 }
 
 #[test]
@@ -346,6 +396,22 @@ fn mul() {
   let two = Point::generator() + Point::generator();
   assert_eq!(Point::generator() * Scalar::from(2u8), two);
   assert_eq!(Point::generator() * Scalar::from(3u8), two + Point::generator());
+
+  assert_eq!(
+    (Point::generator() * Scalar::from(3u8)) + (Point::generator() * Scalar::from(2u8)),
+    Point::generator() +
+      Point::generator() +
+      Point::generator() +
+      Point::generator() +
+      Point::generator()
+  );
+
+  assert_eq!((Point::generator() * -Scalar::one()) + Point::generator(), Point::identity());
+  assert_eq!(Point::generator() * -Scalar::one(), -Point::generator());
+  assert_eq!(
+    (Point::generator() * -Scalar::one()) + Point::generator().double(),
+    Point::generator()
+  );
 }
 
 #[test]
@@ -354,4 +420,12 @@ fn infinity() {
   assert_eq!(Point::identity() + Point::identity(), Point::identity());
   assert_eq!(Point::identity() + Point::generator(), Point::generator());
   assert_eq!(Point::generator() + Point::identity(), Point::generator());
+}
+
+#[test]
+fn field() {
+  let zero = (Point::generator() * -Scalar::one()) + Point::generator();
+  assert_eq!(zero.to_bytes(), <Point as GroupEncoding>::Repr::default());
+  Point::from_bytes(&zero.to_bytes()).unwrap();
+  assert_eq!(zero, Point::identity());
 }

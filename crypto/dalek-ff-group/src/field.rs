@@ -1,4 +1,4 @@
-use core::ops::{Add, AddAssign, Sub, SubAssign, Neg, Mul, MulAssign};
+use core::{ops::{Add, AddAssign, Sub, SubAssign, Neg, Mul, MulAssign}, iter::Sum};
 
 use rand_core::RngCore;
 
@@ -54,6 +54,16 @@ math!(
   }
 );
 from_uint!(FieldElement, U256);
+
+impl Sum<FieldElement> for FieldElement {
+  fn sum<I: Iterator<Item = FieldElement>>(iter: I) -> FieldElement {
+    let mut sum = FieldElement::zero();
+    for f in iter {
+      sum += f;
+    }
+    sum
+  }
+}
 
 impl Neg for FieldElement {
   type Output = Self;

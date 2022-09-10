@@ -4,7 +4,9 @@ members = [
 
   "crypto/dalek-ff-group",
   "crypto/ed448",
+
   "crypto/proof25519",
+  "crypto/bulletproofs",
 
   "crypto/multiexp",
 
@@ -37,6 +39,9 @@ group = { opt-level = 3 }
 crypto-bigint = { opt-level = 3 }
 dalek-ff-group = { opt-level = 3 }
 minimal-ed448 = { opt-level = 3 }
+
+minimal-proof25519 = { opt-level = 3 }
+bulletproofs = { opt-level = 3 }
 
 multiexp = { opt-level = 3 }
 

@@ -105,7 +105,8 @@ macro_rules! field {
       }
 
       fn sqrt(&self) -> CtOption<Self> {
-        const P_4: $FieldName = Self($MODULUS.0.saturating_add(&U512::ONE).wrapping_div(&U512::from_u8(4)));
+        const P_4: $FieldName =
+          Self($MODULUS.0.saturating_add(&U512::ONE).wrapping_div(&U512::from_u8(4)));
         CtOption::new(self.pow(P_4), 1.into())
       }
 
@@ -134,8 +135,8 @@ macro_rules! field {
         repr
       }
 
-      // True for both the Ed448 Scalar field and FieldElement field
-      const S: u32 = 1;
+      // TODO: S
+      const S: u32 = 0;
       fn is_odd(&self) -> Choice {
         self.0.is_odd()
       }
