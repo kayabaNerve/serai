@@ -18,5 +18,5 @@ subtle = "2.4"
 ff = "0.12"
 group = "0.12"
 
-crypto-bigint = "0.4"
+crypto-bigint = { version = "0.4", features = ["zeroize"] }
 curve25519-dalek =  "3.2"

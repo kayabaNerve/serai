@@ -33,7 +33,8 @@ use dalek::{
 use ff::{Field, PrimeField, FieldBits, PrimeFieldBits};
 use group::{Group, GroupEncoding, prime::PrimeGroup};
 
-pub mod field;
+mod field;
+pub use field::*;
 
 // Convert a boolean to a Choice in a *presumably* constant time manner
 fn choice(value: bool) -> Choice {
@@ -386,6 +387,14 @@ impl EdwardsPoint {
   pub fn mul_by_cofactor(&self) -> EdwardsPoint {
     EdwardsPoint(self.0.mul_by_cofactor())
   }
+
+  pub fn decompose(&self) -> (FieldElement, FieldElement) {
+    let mut bytes = self.to_bytes();
+    let sign = Choice::from(bytes[31] >> 7);
+    bytes[31] ^= bytes[31] & (1 << 7);
+    let y = FieldElement::from_repr(bytes).unwrap();
+    (y.recover_x(sign).unwrap(), y)
+  }
 }
 
 dalek_group!(
@@ -398,3 +407,21 @@ dalek_group!(
   RISTRETTO_BASEPOINT_POINT,
   RISTRETTO_BASEPOINT_TABLE
 );
+
+#[test]
+fn decompose() {
+  use crypto_bigint::U256;
+  let decomposed = EdwardsPoint::generator().decompose();
+  assert_eq!(
+    decomposed.0,
+    FieldElement(U256::from_be_hex(
+      "216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51a"
+    ))
+  );
+  assert_eq!(
+    decomposed.1,
+    FieldElement(U256::from_be_hex(
+      "6666666666666666666666666666666666666666666666666666666666666658"
+    ))
+  );
+}

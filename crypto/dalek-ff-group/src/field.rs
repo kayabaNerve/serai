@@ -1,4 +1,7 @@
-use core::{ops::{Add, AddAssign, Sub, SubAssign, Neg, Mul, MulAssign}, iter::Sum};
+use core::{
+  ops::{Add, AddAssign, Sub, SubAssign, Neg, Mul, MulAssign},
+  iter::Sum,
+};
 
 use rand_core::RngCore;
 
@@ -23,13 +26,14 @@ const WIDE_MODULUS: U512 = U512::from_be_hex(concat!(
 ));
 
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
-pub struct FieldElement(U256);
+pub struct FieldElement(pub(crate) U256);
 
 pub const MOD_3_8: FieldElement =
   FieldElement(FIELD_MODULUS.saturating_add(&U256::from_u8(3)).wrapping_div(&U256::from_u8(8)));
 
 pub const MOD_5_8: FieldElement = FieldElement(MOD_3_8.0.saturating_sub(&U256::ONE));
 
+pub const EDWARDS_A: FieldElement = FieldElement(FIELD_MODULUS.saturating_sub(&U256::ONE));
 pub const EDWARDS_D: FieldElement = FieldElement(U256::from_be_hex(
   "52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3",
 ));
@@ -211,6 +215,17 @@ impl FieldElement {
     r.conditional_negate(r_is_negative);
 
     (correct_sign | flipped_sign, r)
+  }
+
+  pub fn recover_x(&self, sign: Choice) -> CtOption<FieldElement> {
+    let ysq = self.square();
+    ((EDWARDS_D * ysq) + FieldElement::one()).invert().and_then(|inv| {
+      let x2 = (ysq - FieldElement::one()) * inv;
+      x2.sqrt().and_then(|mut x| {
+        x.conditional_assign(&-x, !x.is_odd().ct_eq(&sign));
+        CtOption::new(x, (!x2.ct_eq(&FieldElement::zero())) | (!sign))
+      })
+    })
   }
 }
 

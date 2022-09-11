@@ -101,7 +101,7 @@ impl Add for Point {
     let G_ = B + E;
 
     Point {
-      x: zcp * F * ((self.x + self.y) * (other.x + other.y) - xcp - ycp),
+      x: zcp * F * (((self.x + self.y) * (other.x + other.y)) - xcp - ycp),
       y: zcp * G_ * (ycp - xcp),
       z: F * G_,
     }
