@@ -1,12 +1,13 @@
 [package]
 name = "tony-proof"
 version = "0.1.0"
-description = "Arithmetic-circuit-based membership proof for Seraphis"
+description = "WIP arithmetic-circuit-based membership proof for Seraphis"
 license = "MIT"
 repository = "https://github.com/serai-dex/serai"
 authors = ["Luke Parker <lukeparker5132@gmail.com>"]
 keywords = ["zk", "snark", "seraphis", "membership"]
 edition = "2021"
+publish = false
 
 [dependencies]
 lazy_static = "1"
