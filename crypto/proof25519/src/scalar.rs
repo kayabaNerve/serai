@@ -1,1 +1,1 @@
-pub use dalek_ff_group::field::FieldElement as Scalar;
+pub use dalek_ff_group::FieldElement as Scalar;

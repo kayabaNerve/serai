@@ -460,6 +460,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "bellman"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4dd656ef4fdf7debb6d87d4dd92642fcbcdb78cbf6600c13e25c87e4d1a3807"
+dependencies = [
+ "bitvec 1.0.1",
+ "blake2s_simd",
+ "byteorder",
+ "crossbeam-channel",
+ "ff",
+ "group",
+ "lazy_static",
+ "log",
+ "num_cpus",
+ "pairing",
+ "rand_core 0.6.3",
+ "rayon",
+ "subtle",
+]
+
+[[package]]
 name = "bimap"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5116,6 +5137,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pairing"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "135590d8bdba2b31346f9cd1fb2a912329f5135e832a4f422942eb6ead8b6b3b"
+dependencies = [
+ "group",
+]
+
+[[package]]
 name = "pallet-balances"
 version = "4.0.0-dev"
 source = "git+https://github.com/serai-dex/substrate#c352f3530b6ea7ebc88d034b56dfc7a4f441f3a2"
@@ -9029,6 +9059,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d82e1a7758622a465f8cee077614c73484dac5b836c02ff6a40d5d1010324d7"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "tony-proof"
+version = "0.1.0"
+dependencies = [
+ "bellman",
+ "dalek-ff-group",
+ "digest 0.10.3",
+ "ff",
+ "group",
+ "lazy_static",
+ "minimal-proof25519",
+ "rand_core 0.6.3",
+ "subtle",
+ "zeroize",
 ]
 
 [[package]]
