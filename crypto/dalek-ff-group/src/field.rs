@@ -120,8 +120,26 @@ impl Field for FieldElement {
   fn cube(&self) -> Self {
     self.square() * self
   }
-  fn pow_vartime<S: AsRef<[u64]>>(&self, _exp: S) -> Self {
-    unimplemented!()
+  fn pow_vartime<S: AsRef<[u64]>>(&self, exp: S) -> Self {
+    let mut sum = Self::zero();
+    for num in exp.as_ref() {
+      let mut num = *num;
+      for b in 0 .. 64 {
+        if b != 0 {
+          sum = sum.square();
+        }
+
+        if (num & 1) == 1 {
+          sum *= self;
+        }
+
+        num >>= 1;
+        if num == 0 {
+          return sum;
+        };
+      }
+    }
+    sum
   }
 }
 
