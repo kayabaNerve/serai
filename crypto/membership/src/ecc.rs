@@ -1,4 +1,4 @@
-use ff::Field;
+use ff::{Field, PrimeFieldBits};
 use group::Group;
 use dalek_ff_group::{EDWARDS_D, EdwardsPoint};
 use minimal_proof25519::scalar::Scalar;
@@ -12,8 +12,8 @@ use crate::math::{constant_num, input_num, naive_add, naive_sub};
 
 #[derive(Clone, Copy)]
 pub(crate) struct Point {
-  x: Scalar,
-  y: Scalar,
+  pub(crate) x: Scalar,
+  pub(crate) y: Scalar,
 }
 
 impl Point {
@@ -32,7 +32,10 @@ pub(crate) struct PrivatePoint {
 }
 
 impl PrivatePoint {
-  pub(crate) fn identity<CS: ConstraintSystem<Scalar>>(mut cs: CS) -> Result<PrivatePoint, SynthesisError> {
+  #[cfg(test)]
+  pub(crate) fn identity<CS: ConstraintSystem<Scalar>>(
+    mut cs: CS,
+  ) -> Result<PrivatePoint, SynthesisError> {
     Ok(PrivatePoint {
       x: constant_num(cs.namespace(|| "x"), Scalar::zero())?,
       y: constant_num(cs.namespace(|| "y"), Scalar::one())?,
@@ -41,13 +44,23 @@ impl PrivatePoint {
     })
   }
 
-  pub(crate) fn from<CS: ConstraintSystem<Scalar>>(mut cs: CS, point: Point) -> Result<PrivatePoint, SynthesisError> {
+  pub(crate) fn from<CS: ConstraintSystem<Scalar>>(
+    mut cs: CS,
+    point: Point,
+  ) -> Result<PrivatePoint, SynthesisError> {
     Ok(PrivatePoint {
       x: input_num(cs.namespace(|| "x"), point.x)?,
       y: input_num(cs.namespace(|| "y"), point.y)?,
       z: constant_num(cs.namespace(|| "z"), Scalar::one())?,
       t: input_num(cs.namespace(|| "t"), point.x * point.y)?,
     })
+  }
+
+  pub(crate) fn from_edwards<CS: ConstraintSystem<Scalar>>(
+    cs: CS,
+    point: EdwardsPoint,
+  ) -> Result<PrivatePoint, SynthesisError> {
+    PrivatePoint::from(cs, Point::from(point))
   }
 }
 
@@ -184,6 +197,7 @@ pub(crate) fn edwards_basepoint_mul<CS: ConstraintSystem<Scalar>>(
   };
 
   let mut generator = EdwardsPoint::generator();
+  // TODO: Can this generator not be made private?
   let mut private_generator = Some(to_private(cs.namespace(|| "generator 0"), generator)?);
 
   let mut sum = start;
@@ -202,10 +216,26 @@ pub(crate) fn edwards_basepoint_mul<CS: ConstraintSystem<Scalar>>(
     sum = edwards_add(cs.namespace(|| "addition ".to_string() + &i.to_string()), sum, bit)?;
     if i != 252 {
       generator = generator.double();
-      private_generator =
-        Some(to_private(cs.namespace(|| "generator ".to_string() + &(i + 1).to_string()), generator)?);
+      private_generator = Some(to_private(
+        cs.namespace(|| "generator ".to_string() + &(i + 1).to_string()),
+        generator,
+      )?);
     }
   }
 
   Ok(sum)
+}
+
+pub(crate) fn invert<CS: ConstraintSystem<Scalar>>(
+  mut cs: CS,
+  value: AllocatedNum<Scalar>,
+) -> Result<AllocatedNum<Scalar>, SynthesisError> {
+  let mut res = constant_num(cs.namespace(|| "inverse"), Scalar::one())?;
+  for (i, bit) in (-Scalar::from(2u8)).to_le_bits().iter().rev().enumerate() {
+    res = res.mul(cs.namespace(|| "square ".to_string() + &i.to_string()), &res)?;
+    if *bit {
+      res = res.mul(cs.namespace(|| "multiplication ".to_string() + &i.to_string()), &value)?;
+    }
+  }
+  Ok(res)
 }
