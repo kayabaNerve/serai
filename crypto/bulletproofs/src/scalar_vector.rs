@@ -88,6 +88,7 @@ impl ScalarVector {
     self.0.len()
   }
 
+  // TODO: This should be interleaved ([0, 2, 4] and [1, 3, 5])
   pub(crate) fn split(self) -> (ScalarVector, ScalarVector) {
     let (l, r) = self.0.split_at(self.0.len() / 2);
     (ScalarVector(l.to_vec()), ScalarVector(r.to_vec()))

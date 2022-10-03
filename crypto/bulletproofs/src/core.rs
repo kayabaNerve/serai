@@ -9,7 +9,7 @@ use rand_core::{RngCore, CryptoRng};
 use subtle::{Choice, ConditionallySelectable};
 
 use generic_array::{typenum::U33, GenericArray};
-use blake2::{Digest, Blake2b512};
+use blake2::{digest::{Digest, Update, VariableOutput}, Blake2s256, Blake2bVar};
 
 use group::{
   ff::{Field, PrimeField},
@@ -30,31 +30,40 @@ pub(crate) struct Generators {
   pub(crate) H: Vec<Point>,
 }
 
-// TODO: Biased. DO NOT USE.
+// TODO: Use wide reduction so this doesn't have a chance at failure and can become constant time
 pub(crate) fn hash_to_scalar(buf: &[u8]) -> Scalar {
-  let raw = Blake2b512::digest(buf);
-  let mut bytes = [0; 32];
-  bytes.copy_from_slice(&raw[.. 32]);
-  bytes[31] = 0b00011111;
-  Scalar::from_repr(bytes).unwrap()
+  let mut repr = [0; 32];
+  repr.copy_from_slice(Blake2s256::digest(buf).as_ref());
+
+  for _ in 0 .. 512 {
+    let scalar = Scalar::from_repr(repr);
+    if scalar.is_some().into() {
+      return scalar.unwrap();
+    }
+    let new = Blake2s256::digest(repr);
+    repr.copy_from_slice(new.as_ref());
+  }
+  panic!("Couldn't hash to a scalar");
 }
 
-// TODO: Biased. DO NOT USE.
-fn generator(prefix: &'static [u8], u: usize) -> Point {
-  let raw = Blake2b512::digest(&[prefix, &u64::try_from(u).unwrap().to_le_bytes()].concat());
-  let mut bytes = [0; 33];
-  bytes.copy_from_slice(&raw[.. 33]);
-  bytes[32] = 0;
+// Rejection-sampling-based hash to point
+// TODO: Cache successfully generated generators
+fn generator(dst: &[u8], i: usize) -> Point {
+  for attempt in 0 .. 10000u16 {
+    let mut repr = <Point as GroupEncoding>::Repr::default();
 
-  let mut repr = <Point as GroupEncoding>::Repr::default();
-  loop {
-    repr.copy_from_slice(&bytes);
-    let res = Point::from_bytes(&repr);
-    if res.is_some().into() {
-      return res.unwrap().mul_by_cofactor();
+    let mut digest = Blake2bVar::new(repr.len()).unwrap();
+    digest.update(dst);
+    digest.update(&u64::try_from(i).unwrap().to_le_bytes());
+    digest.update(&attempt.to_le_bytes());
+
+    digest.finalize_variable(&mut repr).unwrap();
+    let point = Point::from_bytes(&repr);
+    if point.is_some().into() {
+      return point.unwrap().mul_by_cofactor();
     }
-    bytes[0] = bytes[0].wrapping_add(1);
   }
+  panic!("Couldn't generate a generator");
 }
 
 static mut GENERATORS: (Cell<mem::MaybeUninit<Generators>>, Once) =
