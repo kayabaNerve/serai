@@ -2,7 +2,7 @@ use rand_core::OsRng;
 
 use ff::Field;
 use multiexp::BatchVerifier;
-use minimal_proof25519::{scalar::Scalar};
+use bulletproof25519::{scalar::Scalar};
 
 use bulletproofs::{Commitment, BulletproofsPlus};
 

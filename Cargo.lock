@@ -105,16 +105,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "bulletproof25519"
+version = "0.1.0"
+dependencies = [
+ "crypto-bigint",
+ "dalek-ff-group",
+ "digest 0.10.5",
+ "ff",
+ "generic-array",
+ "group",
+ "hex",
+ "hex-literal",
+ "lazy_static",
+ "rand_core 0.6.4",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "bulletproofs"
 version = "0.1.0"
 dependencies = [
  "blake2",
+ "bulletproof25519",
  "digest 0.10.5",
  "ff",
  "generic-array",
  "group",
  "lazy_static",
- "minimal-proof25519",
  "multiexp",
  "rand_core 0.6.4",
  "subtle",
@@ -708,24 +726,6 @@ name = "mime"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a60c7ce501c71e03a9c9c0d35b861413ae925bd979cc7a4e30d060069aaac8d"
-
-[[package]]
-name = "minimal-proof25519"
-version = "0.1.0"
-dependencies = [
- "crypto-bigint",
- "dalek-ff-group",
- "digest 0.10.5",
- "ff",
- "generic-array",
- "group",
- "hex",
- "hex-literal",
- "lazy_static",
- "rand_core 0.6.4",
- "subtle",
- "zeroize",
-]
 
 [[package]]
 name = "mio"
@@ -1423,12 +1423,12 @@ name = "tony-proof"
 version = "0.1.0"
 dependencies = [
  "bellman",
+ "bulletproof25519",
  "dalek-ff-group",
  "digest 0.10.5",
  "ff",
  "group",
  "lazy_static",
- "minimal-proof25519",
  "rand_core 0.6.4",
  "subtle",
  "zeroize",

@@ -24,4 +24,4 @@ group = "0.12"
 bellman = "0.13"
 
 dalek-ff-group = { path = "../dalek-ff-group", version = "^0.1.2" }
-minimal-proof25519 = { path = "../proof25519", version = "^0.1.0" }
+bulletproof25519 = { path = "../bulletproof25519", version = "^0.1.0" }

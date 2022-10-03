@@ -9,7 +9,7 @@ use group::{
   Group, GroupEncoding,
 };
 use multiexp::{multiexp, BatchVerifier};
-use minimal_proof25519::{scalar::Scalar, point::Point};
+use bulletproof25519::{scalar::Scalar, point::Point};
 
 mod scalar_vector;
 use scalar_vector::*;

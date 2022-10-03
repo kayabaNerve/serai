@@ -1,7 +1,7 @@
 use ff::{Field, PrimeFieldBits};
 use group::Group;
 use dalek_ff_group::{EDWARDS_D, EdwardsPoint};
-use minimal_proof25519::scalar::Scalar;
+use bulletproof25519::scalar::Scalar;
 
 use bellman::{
   SynthesisError, ConstraintSystem, Namespace,

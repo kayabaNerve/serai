@@ -25,4 +25,4 @@ group = "0.12"
 
 multiexp = { version = "0.2", features = ["batch"] }
 
-minimal-proof25519 = { path = "../proof25519", version = "0.1" }
+bulletproof25519 = { path = "../bulletproof25519", version = "0.1" }

@@ -3,7 +3,7 @@ use core::ops::{Add, Sub, Mul, Index};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use group::ff::Field;
-use minimal_proof25519::{scalar::Scalar, point::Point};
+use bulletproof25519::{scalar::Scalar, point::Point};
 
 use multiexp::multiexp;
 

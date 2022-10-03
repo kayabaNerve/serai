@@ -15,7 +15,7 @@ use group::{
   ff::{Field, PrimeField},
   Group, GroupEncoding,
 };
-use minimal_proof25519::{scalar::Scalar, point::Point};
+use bulletproof25519::{scalar::Scalar, point::Point};
 
 pub(crate) use crate::{Commitment, scalar_vector::*};
 

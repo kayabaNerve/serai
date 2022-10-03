@@ -1,4 +1,4 @@
-use minimal_proof25519::scalar::Scalar;
+use bulletproof25519::scalar::Scalar;
 
 use bellman::{
   ConstraintSystem,
