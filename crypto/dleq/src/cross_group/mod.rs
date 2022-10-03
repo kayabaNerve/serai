@@ -4,7 +4,7 @@ use rand_core::{RngCore, CryptoRng};
 
 use zeroize::Zeroize;
 
-use digest::Digest;
+use digest::{Digest, HashMarker};
 
 use transcript::Transcript;
 
@@ -226,8 +226,7 @@ where
         break;
       }
 
-      let mut bit = *raw_bit as u8;
-      debug_assert_eq!(bit | 1, 1);
+      let mut bit = u8::from(*raw_bit);
       *raw_bit = false;
 
       // Accumulate this bit
@@ -246,7 +245,7 @@ where
           these_bits,
           &mut blinding_key,
         ));
-        these_bits = 0;
+        these_bits.zeroize();
       }
     }
     debug_assert_eq!(bits.len(), capacity / bits_per_group);
@@ -278,11 +277,11 @@ where
   /// Prove the cross-Group Discrete Log Equality for the points derived from the scalar created as
   /// the output of the passed in Digest. Given the non-standard requirements to achieve
   /// uniformity, needing to be < 2^x instead of less than a prime moduli, this is the simplest way
-  /// to safely and securely generate a Scalar, without risk of failure, nor bias
+  /// to safely and securely generate a Scalar, without risk of failure, nor bias.
   /// It also ensures a lack of determinable relation between keys, guaranteeing security in the
   /// currently expected use case for this, atomic swaps, where each swap leaks the key. Knowing
-  /// the relationship between keys would allow breaking all swaps after just one
-  pub fn prove<R: RngCore + CryptoRng, T: Clone + Transcript, D: Digest>(
+  /// the relationship between keys would allow breaking all swaps after just one.
+  pub fn prove<R: RngCore + CryptoRng, T: Clone + Transcript, D: Digest + HashMarker>(
     rng: &mut R,
     transcript: &mut T,
     generators: (Generators<G0>, Generators<G1>),
@@ -298,7 +297,7 @@ where
 
   /// Prove the cross-Group Discrete Log Equality for the points derived from the scalar passed in,
   /// failing if it's not mutually valid. This allows for rejection sampling externally derived
-  /// scalars until they're safely usable, as needed
+  /// scalars until they're safely usable, as needed.
   pub fn prove_without_bias<R: RngCore + CryptoRng, T: Clone + Transcript>(
     rng: &mut R,
     transcript: &mut T,
@@ -308,7 +307,7 @@ where
     scalar_convert(f0).map(|f1| Self::prove_internal(rng, transcript, generators, (f0, f1)))
   }
 
-  /// Verify a cross-Group Discrete Log Equality statement, returning the points proven for
+  /// Verify a cross-Group Discrete Log Equality statement, returning the points proven for.
   pub fn verify<R: RngCore + CryptoRng, T: Clone + Transcript>(
     &self,
     rng: &mut R,

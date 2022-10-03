@@ -86,47 +86,50 @@ fn ed448_non_ietf() {
       nonces: &[
         [
           concat!(
-            "afa99ad5138f89d064c828ecb17accde77e4dc52e017c20b34d1db11",
-            "bdd0b17d2f4ec6ea7d5414df33977267c49b8d4b3b35c7f4a089db2f",
+            "06f2e15b05d29a50f0686a890259f4dcf66147a80809ed9e50926f5f",
+            "173fe23a0627561efa003724dc270effc47a30bc4d80aba30725401d",
             "00"
           ),
           concat!(
-            "c9c2f6119d5a7f60fc1a3517f08f3aced6f84f53cbcfa4709080858d",
-            "b8c8b49d4cb9921c4118f1961d4fb653ad5e320d175de3ee5258e904",
+            "e0482e611c34f191d1c13a09bc8bbf4bda68db4de32aa7908849b02b",
+            "a912cfba46c805e2d8560ab9437e343e1dde6b481a2bae527e111b2c",
             "00"
           ),
         ],
         [
           concat!(
-            "a575cf9ae013b63204a56cc0bb0c21184eed6e42f448344e59153cf4",
-            "3798ad3b8c300a2c0ffa04ee7228a5c4ff84fcad4cf9616d1cd7fe0a",
+            "295c56447c070157e6bc3c83ed2afca194569e07d0ad27d28a40dec2",
+            "c4107c07d507db20da1be62ea6976b8e53ab5d26e225c663f2e71511",
             "00"
           ),
           concat!(
-            "12419016a6c0d38a1d9d1eeb1455525d73a464113a9323fcfc75e5fb",
-            "7c1f17ad71ca2f2852b71f33950adedd7f8489551ad356ecf39a4d29",
+            "b97303a6c5ab12b6ad310834361033a19d99dfdf93109da721da35c3",
+            "abbc5f29df33b3402692bef9f005bb8ea00af5ba20cc688360fd8831",
             "00"
           ),
         ],
       ],
       sig_shares: &[
         concat!(
-          "e88d1e9743ac059553de940131508205eff504816935f8c9d22a29df",
-          "4c541e4bb55d4c4a5c58dd65e6d2c421e35f2ddc7ea11095cffb3b16",
+          "5b65641e27007ec71509c6af5cf8527eb01fee5b2b07d8beecf6646e",
+          "b7e7e27d85119b74f895b56ba7561834a1b0c42639b122160a0b6208",
           "00"
         ),
         concat!(
-          "d6ae2965ee86f925d38eedf0690ee54395243d244b59a5fece45cece",
-          "721867a00a6c7af9635c621ea09edad8fc26db5de4ce3aa4e7e7ea3f",
+          "821b7ac04d7c01d970b0b3ba4ae8f737a5bac934aed1600b1cad7601",
+          "1c240629bce6a4671a1b6f572cec708ec161a72a5ca04e50eabdfc25",
           "00"
         ),
       ],
-      sig: "c07db58a26bd0c33930455f1923df2ffa50c3a1679e06a1940f84e0e".to_owned() +
-        "067bcec3e46008c3b4018b7b2563ba0f26740b7b5932883355e569f5" +
-        "00" +
-        "cbf7ef509f708697d1ddbc64289cfa27f4e36bf66ab34e04b84c2d31" +
-        "c06c85ebbfc9c643c0b43f8486719ffadf86083a63704b39b7e32616" +
+      sig: concat!(
+        "c7ad7ad9fcfeef9d1492361ba641400bd3a3c8335a83cdffbdd8867d",
+        "2849bb4419dcc3e594baa731081a1a00cd3dea9219a81ecba4646e95",
         "00",
+        "dd80dede747c7fa086b9796aa7e04ab655dab790d9d838ca08a4db6f",
+        "d30be9a641f83fdc12b124c3d34289c262126c5195517166f4c85e2e",
+        "00"
+      )
+      .to_string(),
     },
   );
 }
