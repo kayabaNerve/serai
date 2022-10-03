@@ -1,31 +1,13 @@
 [workspace]
 members = [
-  "crypto/transcript",
-
   "crypto/dalek-ff-group",
-  "crypto/ed448",
-
   "crypto/proof25519",
+
   "crypto/bulletproofs",
   "crypto/membership",
 
-  "crypto/multiexp",
-
-  "crypto/dleq",
-  "crypto/frost",
-
-  "coins/ethereum",
   "coins/monero/generators",
   "coins/monero",
-
-  "processor",
-
-  "substrate/runtime",
-  "substrate/consensus",
-  "substrate/node",
-
-  "contracts/extension",
-  "contracts/multisig",
 ]
 
 # Always compile Monero (and a variety of dependencies) with optimizations due
@@ -39,17 +21,14 @@ group = { opt-level = 3 }
 
 crypto-bigint = { opt-level = 3 }
 dalek-ff-group = { opt-level = 3 }
-minimal-ed448 = { opt-level = 3 }
-
 minimal-proof25519 = { opt-level = 3 }
-bulletproofs = { opt-level = 3 }
 
 multiexp = { opt-level = 3 }
 
+bulletproofs = { opt-level = 3 }
+tony-proof = { opt-level = 3 }
+
 monero-serai = { opt-level = 3 }
 
-[profile.release]
-panic = "unwind"
-
 [patch.crates-io]
-zip = { version = "0.6.2", git = "https://github.com/zip-rs/zip", rev = "bb230ef56adc13436d1fcdfaa489249d119c498f" }
+dalek-ff-group = { path = "crypto/dalek-ff-group" }

@@ -5,11 +5,7 @@ use minimal_proof25519::scalar::Scalar;
 
 use bellman::{
   SynthesisError, ConstraintSystem, LinearCombination,
-  gadgets::{
-    boolean::Boolean,
-    num::AllocatedNum,
-    blake2s::blake2s,
-  },
+  gadgets::{boolean::Boolean, num::AllocatedNum, blake2s::blake2s},
 };
 
 mod math;
@@ -63,7 +59,9 @@ pub fn tony<CS: ConstraintSystem<Scalar>>(
 
   // Have it be negative to subtract it, re-acquiring the original point
   let (sign, point) = {
-    let blind_neg = AllocatedNum::alloc(cs.namespace(|| "blind"), || Ok(Scalar::from_repr((-data.unwrap().blind).to_repr()).unwrap()))?;
+    let blind_neg = AllocatedNum::alloc(cs.namespace(|| "blind"), || {
+      Ok(Scalar::from_repr((-data.unwrap().blind).to_repr()).unwrap())
+    })?;
     let original = edwards_basepoint_mul(cs.namespace(|| "unblind"), output, blind_neg)?;
 
     // Normalize it
@@ -112,12 +110,6 @@ fn test() {
     coeff = coeff.double();
   }
 
-  tony(
-    cs.namespace(|| "tony"),
-    tree,
-    output,
-    Some(TonyProvingData { blind }),
-  )
-  .unwrap();
+  tony(cs.namespace(|| "tony"), tree, output, Some(TonyProvingData { blind })).unwrap();
   assert!(cs.is_satisfied());
 }

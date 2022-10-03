@@ -23,6 +23,6 @@ blake2 = "0.10"
 ff = "0.12"
 group = "0.12"
 
-multiexp = { path = "../multiexp", version = "0.2", features = ["batch"] }
+multiexp = { version = "0.2", features = ["batch"] }
 
 minimal-proof25519 = { path = "../proof25519", version = "0.1" }

@@ -1,15 +1,11 @@
 # Contributing
 
-Contributions come in a variety of forms. Developing Serai, helping document it,
-using its libraries in another project, using and testing it, and simply sharing
-it are all valuable ways of contributing.
-
-This document will specifically focus on contributions to this repository in the
-form of code and documentation.
+Contributions come in a variety of forms. This document will specifically focus
+on contributions to this repository in the form of code and documentation.
 
 ### Rules
 
-- Stable native Rust, nightly wasm and tools.
+- Stable native Rust, nightly tools.
 - `cargo fmt` must be used.
 - `cargo clippy` must pass, except for the ignored rules (`type_complexity` and
 `dead_code`).

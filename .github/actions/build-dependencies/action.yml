@@ -15,16 +15,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Install Protobuf
-      uses: arduino/setup-protoc@v1
-
-    - name: Install solc
-      shell: bash
-      run: |
-        pip3 install solc-select
-        solc-select install 0.8.16
-        solc-select use 0.8.16
-
     - name: Install Rust
       uses: ./.github/actions/cached-rust
       with:
@@ -35,10 +25,3 @@ runs:
       id: nightly
       shell: bash
       run: echo "::set-output name=version::$(cat .github/nightly-version)"
-
-    - name: Install WASM toolchain
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: ${{ steps.nightly.outputs.version }}
-        profile: minimal
-        target: wasm32-unknown-unknown
