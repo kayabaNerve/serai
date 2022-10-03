@@ -4,7 +4,7 @@ members = [
   "crypto/proof25519",
 
   "crypto/bulletproofs",
-  "crypto/membership",
+  "crypto/tony-proof",
 
   "coins/monero/generators",
   "coins/monero",
