@@ -20,12 +20,15 @@ use crate::{
   field::FieldElement,
 };
 
-// Temporary generator created via
-// H("generator") = 9123DCBB0B42652B0E105956C68D3CA2FF34584F324FA41A29AEDD32B883E131
-// Slightly biased due to being a 32-byte value, not a 33-byte value
+// Generator X coordinate created via
+// sha512("Bulletproof25519 Generator") =
+// 24160648779d1b6e09a632ee5665113f0f47c859f39f806cb4e89e7f6e4de1c2
+// 521ff50761c9de5d7242a79fb00611cdb4993d2c6c795f81851d2cc85194b38b
+// The first 33 bytes were grabbed, and the first 4 bits were dropped
+// This remains completely unbiased since the first 4 bits are never used
 const G_X: FieldElement = FieldElement(U512::from_be_hex(concat!(
   "00000000000000000000000000000000000000000000000000000000000000",
-  "009123DCBB0B42652B0E105956C68D3CA2FF34584F324FA41A29AEDD32B883E131",
+  "04160648779d1b6e09a632ee5665113f0f47c859f39f806cb4e89e7f6e4de1c252",
 )));
 
 fn recover_y(x: FieldElement) -> CtOption<FieldElement> {
@@ -411,4 +414,5 @@ fn torsion() {
     !((Point { x: G_X, y: recover_y(G_X).unwrap(), z: FieldElement::one() }) * ORDER)
       .ct_eq(&Point::identity())
   ));
+  assert!(bool::from((*G * ORDER).ct_eq(&Point::identity())));
 }
