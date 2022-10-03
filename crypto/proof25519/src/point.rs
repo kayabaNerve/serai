@@ -15,7 +15,10 @@ use crypto_bigint::U512;
 use ff::{Field, PrimeField, PrimeFieldBits};
 use group::{Group, GroupEncoding, prime::PrimeGroup};
 
-use crate::{scalar::Scalar, field::FieldElement};
+use crate::{
+  scalar::{Scalar, ORDER},
+  field::FieldElement,
+};
 
 // Temporary generator created via
 // H("generator") = 9123DCBB0B42652B0E105956C68D3CA2FF34584F324FA41A29AEDD32B883E131
@@ -277,7 +280,7 @@ impl MulAssign<&Scalar> for Point {
 impl GroupEncoding for Point {
   type Repr = <FieldElement as PrimeField>::Repr;
 
-  // TODO: Ban torsion OR use a Ristretto-esque encoding
+  // TODO: Torsion clear, not check, or use a Ristretto-esque encoding
   fn from_bytes(bytes: &Self::Repr) -> CtOption<Self> {
     // Extract and clear the sign bit
     let sign = Choice::from(bytes[32] >> 7);
@@ -301,7 +304,8 @@ impl GroupEncoding for Point {
           ),
         };
         let negative_infinity = infinity & sign;
-        CtOption::new(point, !negative_infinity)
+        let torsioned = !(point * ORDER).ct_eq(&Point::identity());
+        CtOption::new(point, !(negative_infinity | torsioned))
       })
     })
   }
@@ -399,4 +403,12 @@ fn field() {
   assert_eq!(zero.to_bytes(), <Point as GroupEncoding>::Repr::default());
   Point::from_bytes(&zero.to_bytes()).unwrap();
   assert_eq!(zero, Point::identity());
+}
+
+#[test]
+fn torsion() {
+  assert!(bool::from(
+    !((Point { x: G_X, y: recover_y(G_X).unwrap(), z: FieldElement::one() }) * ORDER)
+      .ct_eq(&Point::identity())
+  ));
 }

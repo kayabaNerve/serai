@@ -28,6 +28,8 @@ const WIDE_MODULUS: U512 = U512::from_be_hex(concat!(
 #[derive(Clone, Copy, PartialEq, Eq, Default, Debug, Zeroize)]
 pub struct FieldElement(pub(crate) U256);
 
+pub const ORDER: FieldElement = FieldElement(FIELD_MODULUS);
+
 pub const MOD_3_8: FieldElement =
   FieldElement(FIELD_MODULUS.saturating_add(&U256::from_u8(3)).wrapping_div(&U256::from_u8(8)));
 
