@@ -75,35 +75,6 @@ impl ConditionallySelectable for Point {
 impl Add for Point {
   type Output = Point;
   fn add(self, other: Self) -> Self {
-    // TODO: https://eprint.iacr.org/2015/1060.pdf Algorithm 7, which doesn't work for some reason?
-    // This is the algorithm. The question is why the algorithm doesn't work.
-    // It being the algorithm was verified via grabbing its supplied code in the addendum and
-    // verifying the consistency.
-    // It may be faster than the current algorithm, which multiplies and doubles to remain constant
-    // time.
-    /*
-    let t0 = self.x * other.x;
-    let t1 = self.y * other.y;
-    let t2 = self.z * other.z;
-
-    let t3 = ((self.x + self.y) * (other.x + other.y)) - (t0 + t1);
-
-    let t4 = ((self.y + self.z) * (other.y + other.z)) - (t1 + t2);
-
-    let y = (self.x + self.z) * (other.x + other.z) - (t0 + t2);
-
-    let t0 = t0.double() + t0;
-    let t2 = t2.double() + t2;
-    let z = t1 + t2;
-    let t1 = t1 - t2;
-    let y = y * FieldElement::from(3u8);
-
-    let x = (t3 * t1) - (t4 * y);
-    let y = (y * t0) + (t1 * z);
-    let z = (z * t4) + (t0 * t3);
-    Point { x, y, z }
-    */
-
     // Return the point which isn't identity if one is
     let res = CtOption::new(self, other.x.is_zero());
     let res = res.or_else(|| CtOption::new(other, self.x.is_zero()));
