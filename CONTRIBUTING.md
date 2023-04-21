@@ -9,7 +9,7 @@ form of code and documentation.
 
 ### Rules
 
-- Stable native Rust, nightly wasm and tools.
+- Stable Rust, nightly tools.
 - `cargo fmt` must be used.
 - `cargo clippy` must pass, except for the ignored rules (`type_complexity` and
 `dead_code`).

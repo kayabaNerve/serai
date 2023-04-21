@@ -1,8 +1,5 @@
 [workspace]
 members = [
-  "common/zalloc",
-  "common/db",
-
   "crypto/transcript",
 
   "crypto/ff-group-tests",
@@ -16,33 +13,9 @@ members = [
   "crypto/dleq",
   "crypto/dkg",
   "crypto/frost",
-  "crypto/schnorrkel",
 
-  "coins/ethereum",
   "coins/monero/generators",
   "coins/monero",
-
-  "processor/messages",
-  "processor",
-
-  "coordinator/tributary/tendermint",
-  "coordinator/tributary",
-  "coordinator",
-
-  "substrate/primitives",
-  "substrate/client",
-
-  "substrate/tokens/primitives",
-  "substrate/tokens/pallet",
-
-  "substrate/in-instructions/primitives",
-  "substrate/in-instructions/pallet",
-
-  "substrate/validator-sets/primitives",
-  "substrate/validator-sets/pallet",
-
-  "substrate/runtime",
-  "substrate/node",
 ]
 
 # Always compile Monero (and a variety of dependencies) with optimizations due
