@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "common/nostd_io",
+
   "crypto/transcript",
 
   "crypto/dalek-ff-group",

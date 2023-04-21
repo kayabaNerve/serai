@@ -1,0 +1,19 @@
+[package]
+name = "nostd-io"
+version = "0.1.0"
+description = "A no-std set of shims for IO"
+license = "MIT"
+repository = "https://github.com/kayabaNerve/serai/tree/develop/common/io"
+authors = ["Luke Parker <lukeparker5132@gmail.com>"]
+keywords = ["nostd", "no_std", "io"]
+edition = "2021"
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[dependencies]
+
+[features]
+std = []
+default = ["std"]
