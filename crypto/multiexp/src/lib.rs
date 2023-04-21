@@ -1,7 +1,13 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc = include_str!("../README.md")]
 
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+
 use core::ops::DerefMut;
+use alloc::vec::Vec;
 
 use zeroize::Zeroize;
 

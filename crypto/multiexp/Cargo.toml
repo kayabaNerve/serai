@@ -17,16 +17,10 @@ rustversion = "1"
 
 zeroize = { version = "^1.5", features = ["zeroize_derive"] }
 
-ff = "0.13"
-group = "0.13"
+ff = { version = "0.13", default-features = false, features = ["alloc", "bits"] }
+group = { version = "0.13", default-features = false, features = ["alloc"] }
 
-rand_core = { version = "0.6", optional = true }
-
-[dev-dependencies]
-rand_core = "0.6"
-
-k256 = { version = "^0.13.1", default-features = false, features = ["std", "arithmetic", "bits"] }
-dalek-ff-group = { path = "../dalek-ff-group" }
+rand_core = { version = "0.6", default-features = false, features = ["alloc"], optional = true }
 
 [features]
 batch = ["rand_core"]
