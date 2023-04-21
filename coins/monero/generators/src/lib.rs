@@ -2,6 +2,8 @@
 //! An implementation of Monero's `ge_fromfe_frombytes_vartime`, simply called
 //! `hash_to_point` here, is included, as needed to generate generators.
 
+#![no_std]
+
 use lazy_static::lazy_static;
 
 use sha3::{Digest, Keccak256};

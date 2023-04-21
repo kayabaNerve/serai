@@ -1,4 +1,5 @@
-use std::io::{self, Write};
+use nostd_io as io;
+use io::Write;
 
 const VARINT_CONTINUATION_MASK: u8 = 0b1000_0000;
 pub(crate) fn write_varint<W: Write>(varint: &u64, w: &mut W) -> io::Result<()> {

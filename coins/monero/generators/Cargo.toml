@@ -12,13 +12,15 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-lazy_static = "1"
+nostd-io = { path = "../../../common/nostd_io", default-features = false }
 
-subtle = "^2.4"
+lazy_static = { version = "1", features = ["spin_no_std"] }
 
-sha3 = "0.10"
+subtle = { version = "^2.4", default-features = false }
 
-curve25519-dalek = { version = "3", features = ["std"] }
+sha3 = { version = "0.10", default-features = false }
 
-group = "0.13"
+curve25519-dalek = { version = "^3.2", default-features = false, features = ["alloc", "u32_backend"] }
+
+group = { version = "0.13", default-features = false }
 dalek-ff-group = { path = "../../../crypto/dalek-ff-group", version = "0.3" }
