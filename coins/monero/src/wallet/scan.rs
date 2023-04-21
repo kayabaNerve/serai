@@ -10,7 +10,6 @@ use crate::{
   serialize::{read_byte, read_u32, read_u64, read_bytes, read_scalar, read_point, read_raw_vec},
   transaction::{Input, Timelock, Transaction},
   block::Block,
-  rpc::{Rpc, RpcError},
   wallet::{
     PaymentId, Extra, address::SubaddressIndex, Scanner, uniqueness, shared_key, amount_decryption,
     commitment_mask,
@@ -193,20 +192,6 @@ pub struct SpendableOutput {
 }
 
 impl SpendableOutput {
-  /// Update the spendable output's global index. This is intended to be called if a
-  /// re-organization occurred.
-  pub async fn refresh_global_index(&mut self, rpc: &Rpc) -> Result<(), RpcError> {
-    self.global_index =
-      rpc.get_o_indexes(self.output.absolute.tx).await?[usize::from(self.output.absolute.o)];
-    Ok(())
-  }
-
-  pub async fn from(rpc: &Rpc, output: ReceivedOutput) -> Result<SpendableOutput, RpcError> {
-    let mut output = SpendableOutput { output, global_index: 0 };
-    output.refresh_global_index(rpc).await?;
-    Ok(output)
-  }
-
   pub fn key(&self) -> EdwardsPoint {
     self.output.key()
   }
@@ -401,58 +386,5 @@ impl Scanner {
     }
 
     Timelocked(tx.prefix.timelock, res)
-  }
-
-  /// Scan a block to obtain its spendable outputs. Its the presence in a block giving these
-  /// transactions their global index, and this must be batched as asking for the index of specific
-  /// transactions is a dead giveaway for which transactions you successfully scanned. This
-  /// function obtains the output indexes for the miner transaction, incrementing from there
-  /// instead.
-  pub async fn scan(
-    &mut self,
-    rpc: &Rpc,
-    block: &Block,
-  ) -> Result<Vec<Timelocked<SpendableOutput>>, RpcError> {
-    let mut index = rpc.get_o_indexes(block.miner_tx.hash()).await?[0];
-    let mut txs = vec![block.miner_tx.clone()];
-    txs.extend(rpc.get_transactions(&block.txs).await?);
-
-    let map = |mut timelock: Timelocked<ReceivedOutput>, index| {
-      if timelock.1.is_empty() {
-        None
-      } else {
-        Some(Timelocked(
-          timelock.0,
-          timelock
-            .1
-            .drain(..)
-            .map(|output| SpendableOutput {
-              global_index: index + u64::from(output.absolute.o),
-              output,
-            })
-            .collect(),
-        ))
-      }
-    };
-
-    let mut res = vec![];
-    for tx in txs.drain(..) {
-      if let Some(timelock) = map(self.scan_transaction(&tx), index) {
-        res.push(timelock);
-      }
-      index += u64::try_from(
-        tx.prefix
-          .outputs
-          .iter()
-          // Filter to miner TX outputs/0-amount outputs since we're tacking the 0-amount index
-          // This will fail to scan blocks containing pre-RingCT miner TXs
-          .filter(|output| {
-            matches!(tx.prefix.inputs.get(0), Some(Input::Gen(..))) || (output.amount == 0)
-          })
-          .count(),
-      )
-      .unwrap()
-    }
-    Ok(res)
   }
 }

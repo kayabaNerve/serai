@@ -30,7 +30,6 @@ use crate::{
     RctPrunable,
   },
   transaction::{Input, Transaction},
-  rpc::Rpc,
   wallet::{
     TransactionError, InternalPayment, SignableTransaction, Decoys, key_image_sort, uniqueness,
   },
@@ -69,120 +68,6 @@ pub struct TransactionSignMachine {
 pub struct TransactionSignatureMachine {
   tx: Transaction,
   clsags: Vec<AlgorithmSignatureMachine<Ed25519, ClsagMultisig>>,
-}
-
-impl SignableTransaction {
-  /// Create a FROST signing machine out of this signable transaction.
-  /// The height is the Monero blockchain height to synchronize around.
-  pub async fn multisig(
-    self,
-    rpc: &Rpc,
-    keys: ThresholdKeys<Ed25519>,
-    mut transcript: RecommendedTranscript,
-    height: usize,
-  ) -> Result<TransactionMachine, TransactionError> {
-    let mut inputs = vec![];
-    for _ in 0 .. self.inputs.len() {
-      // Doesn't resize as that will use a single Rc for the entire Vec
-      inputs.push(Arc::new(RwLock::new(None)));
-    }
-    let mut clsags = vec![];
-
-    // Create a RNG out of the input shared keys, which either requires the view key or being every
-    // sender, and the payments (address and amount), which a passive adversary may be able to know
-    // depending on how these transactions are coordinated
-    // Being every sender would already let you note rings which happen to use your transactions
-    // multiple times, already breaking privacy there
-
-    transcript.domain_separate(b"monero_transaction");
-
-    // Include the height we're using for our data
-    // The data itself will be included, making this unnecessary, yet a lot of this is technically
-    // unnecessary. Anything which further increases security at almost no cost should be followed
-    transcript.append_message(b"height", u64::try_from(height).unwrap().to_le_bytes());
-
-    // Also include the spend_key as below only the key offset is included, so this transcripts the
-    // sum product
-    // Useful as transcripting the sum product effectively transcripts the key image, further
-    // guaranteeing the one time properties noted below
-    transcript.append_message(b"spend_key", keys.group_key().0.compress().to_bytes());
-
-    if let Some(r_seed) = &self.r_seed {
-      transcript.append_message(b"r_seed", r_seed);
-    }
-
-    for input in &self.inputs {
-      // These outputs can only be spent once. Therefore, it forces all RNGs derived from this
-      // transcript (such as the one used to create one time keys) to be unique
-      transcript.append_message(b"input_hash", input.output.absolute.tx);
-      transcript.append_message(b"input_output_index", [input.output.absolute.o]);
-      // Not including this, with a doxxed list of payments, would allow brute forcing the inputs
-      // to determine RNG seeds and therefore the true spends
-      transcript.append_message(b"input_shared_key", input.key_offset().to_bytes());
-    }
-
-    for payment in &self.payments {
-      match payment {
-        InternalPayment::Payment(payment) => {
-          transcript.append_message(b"payment_address", payment.0.to_string().as_bytes());
-          transcript.append_message(b"payment_amount", payment.1.to_le_bytes());
-        }
-        InternalPayment::Change(change, amount) => {
-          transcript.append_message(b"change_address", change.address.to_string().as_bytes());
-          if let Some(view) = change.view.as_ref() {
-            transcript.append_message(b"change_view_key", Zeroizing::new(view.to_bytes()));
-          }
-          transcript.append_message(b"change_amount", amount.to_le_bytes());
-        }
-      }
-    }
-
-    let mut key_images = vec![];
-    for (i, input) in self.inputs.iter().enumerate() {
-      // Check this the right set of keys
-      let offset = keys.offset(dfg::Scalar(input.key_offset()));
-      if offset.group_key().0 != input.key() {
-        Err(TransactionError::WrongPrivateKey)?;
-      }
-
-      let clsag = ClsagMultisig::new(transcript.clone(), input.key(), inputs[i].clone());
-      key_images.push((
-        clsag.H,
-        keys.current_offset().unwrap_or(dfg::Scalar::ZERO).0 + self.inputs[i].key_offset(),
-      ));
-      clsags.push(AlgorithmMachine::new(clsag, offset));
-    }
-
-    // Select decoys
-    // Ideally, this would be done post entropy, instead of now, yet doing so would require sign
-    // to be async which isn't preferable. This should be suitably competent though
-    // While this inability means we can immediately create the input, moving it out of the
-    // Arc RwLock, keeping it within an Arc RwLock keeps our options flexible
-    let decoys = Decoys::select(
-      // Using a seeded RNG with a specific height, committed to above, should make these decoys
-      // committed to. They'll also be committed to later via the TX message as a whole
-      &mut ChaCha20Rng::from_seed(transcript.rng_seed(b"decoys")),
-      rpc,
-      self.protocol.ring_len(),
-      height,
-      &self.inputs,
-    )
-    .await
-    .map_err(TransactionError::RpcError)?;
-
-    Ok(TransactionMachine {
-      signable: self,
-
-      i: keys.params().i(),
-      transcript,
-
-      decoys,
-
-      key_images,
-      inputs,
-      clsags,
-    })
-  }
 }
 
 impl PreprocessMachine for TransactionMachine {

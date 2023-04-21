@@ -29,8 +29,6 @@ pub mod transaction;
 /// Block structs.
 pub mod block;
 
-/// Monero daemon RPC interface.
-pub mod rpc;
 /// Wallet functionality, enabling scanning and sending transactions.
 pub mod wallet;
 

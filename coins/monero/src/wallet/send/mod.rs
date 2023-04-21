@@ -33,7 +33,6 @@ use crate::{
     RctBase, RctPrunable, RctSignatures,
   },
   transaction::{Input, Output, Timelock, TransactionPrefix, Transaction},
-  rpc::{Rpc, RpcError},
   wallet::{
     address::{Network, AddressSpec, MoneroAddress},
     ViewPair, SpendableOutput, Decoys, PaymentId, ExtraField, Extra, key_image_sort, uniqueness,
@@ -136,65 +135,11 @@ pub enum TransactionError {
   NotEnoughFunds(u64, u64),
   #[error("wrong spend private key")]
   WrongPrivateKey,
-  #[error("rpc error ({0})")]
-  RpcError(RpcError),
   #[error("clsag error ({0})")]
   ClsagError(ClsagError),
-  #[error("invalid transaction ({0})")]
-  InvalidTransaction(RpcError),
   #[cfg(feature = "multisig")]
   #[error("frost error {0}")]
   FrostError(FrostError),
-}
-
-async fn prepare_inputs<R: RngCore + CryptoRng>(
-  rng: &mut R,
-  rpc: &Rpc,
-  ring_len: usize,
-  inputs: &[SpendableOutput],
-  spend: &Zeroizing<Scalar>,
-  tx: &mut Transaction,
-) -> Result<Vec<(Zeroizing<Scalar>, EdwardsPoint, ClsagInput)>, TransactionError> {
-  let mut signable = Vec::with_capacity(inputs.len());
-
-  // Select decoys
-  let decoys = Decoys::select(
-    rng,
-    rpc,
-    ring_len,
-    rpc.get_height().await.map_err(TransactionError::RpcError)? - 1,
-    inputs,
-  )
-  .await
-  .map_err(TransactionError::RpcError)?;
-
-  for (i, input) in inputs.iter().enumerate() {
-    let input_spend = Zeroizing::new(input.key_offset() + spend.deref());
-    let image = generate_key_image(&input_spend);
-    signable.push((
-      input_spend,
-      image,
-      ClsagInput::new(input.commitment().clone(), decoys[i].clone())
-        .map_err(TransactionError::ClsagError)?,
-    ));
-
-    tx.prefix.inputs.push(Input::ToKey {
-      amount: 0,
-      key_offsets: decoys[i].offsets.clone(),
-      key_image: signable[i].1,
-    });
-  }
-
-  signable.sort_by(|x, y| x.1.compress().to_bytes().cmp(&y.1.compress().to_bytes()).reverse());
-  tx.prefix.inputs.sort_by(|x, y| {
-    if let (Input::ToKey { key_image: x, .. }, Input::ToKey { key_image: y, .. }) = (x, y) {
-      x.compress().to_bytes().cmp(&y.compress().to_bytes()).reverse()
-    } else {
-      panic!("Input wasn't ToKey")
-    }
-  });
-
-  Ok(signable)
 }
 
 /// Fee struct, defined as a per-unit cost and a mask for rounding purposes.
@@ -660,49 +605,6 @@ impl SignableTransaction {
       },
       sum,
     )
-  }
-
-  /// Sign this transaction.
-  pub async fn sign<R: RngCore + CryptoRng>(
-    mut self,
-    rng: &mut R,
-    rpc: &Rpc,
-    spend: &Zeroizing<Scalar>,
-  ) -> Result<Transaction, TransactionError> {
-    let mut images = Vec::with_capacity(self.inputs.len());
-    for input in &self.inputs {
-      let mut offset = Zeroizing::new(spend.deref() + input.key_offset());
-      if (offset.deref() * &ED25519_BASEPOINT_TABLE) != input.key() {
-        Err(TransactionError::WrongPrivateKey)?;
-      }
-
-      images.push(generate_key_image(&offset));
-      offset.zeroize();
-    }
-    images.sort_by(key_image_sort);
-
-    let (mut tx, mask_sum) = self.prepare_transaction(
-      rng,
-      uniqueness(
-        &images
-          .iter()
-          .map(|image| Input::ToKey { amount: 0, key_offsets: vec![], key_image: *image })
-          .collect::<Vec<_>>(),
-      ),
-    );
-
-    let signable =
-      prepare_inputs(rng, rpc, self.protocol.ring_len(), &self.inputs, spend, &mut tx).await?;
-
-    let clsag_pairs = Clsag::sign(rng, signable, mask_sum, tx.signature_hash());
-    match tx.rct_signatures.prunable {
-      RctPrunable::Null => panic!("Signing for RctPrunable::Null"),
-      RctPrunable::Clsag { ref mut clsags, ref mut pseudo_outs, .. } => {
-        clsags.append(&mut clsag_pairs.iter().map(|clsag| clsag.0.clone()).collect::<Vec<_>>());
-        pseudo_outs.append(&mut clsag_pairs.iter().map(|clsag| clsag.1).collect::<Vec<_>>());
-      }
-    }
-    Ok(tx)
   }
 }
 
