@@ -1,10 +1,12 @@
 #![allow(non_snake_case)]
 
 use core::ops::Deref;
-use std::io::{self, Read, Write};
+use alloc::vec::Vec;
+
+use nostd_io as io;
+use io::{Read, Write};
 
 use lazy_static::lazy_static;
-use thiserror::Error;
 use rand_core::{RngCore, CryptoRng};
 
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
@@ -34,23 +36,15 @@ lazy_static! {
 }
 
 /// Errors returned when CLSAG signing fails.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Error)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ClsagError {
-  #[error("internal error ({0})")]
   InternalError(&'static str),
-  #[error("invalid ring")]
   InvalidRing,
-  #[error("invalid ring member (member {0}, ring size {1})")]
   InvalidRingMember(u8, u8),
-  #[error("invalid commitment")]
   InvalidCommitment,
-  #[error("invalid key image")]
   InvalidImage,
-  #[error("invalid D")]
   InvalidD,
-  #[error("invalid s")]
   InvalidS,
-  #[error("invalid c1")]
   InvalidC1,
 }
 

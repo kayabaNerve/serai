@@ -12,7 +12,7 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-nostd-io = { path = "../../../common/nostd_io", default-features = false }
+nostd-io = { path = "../../../common/nostd-io", default-features = false }
 
 lazy_static = { version = "1", features = ["spin_no_std"] }
 

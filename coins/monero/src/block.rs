@@ -1,4 +1,7 @@
-use std::io::{self, Read, Write};
+use alloc::vec::Vec;
+
+use nostd_io as io;
+use io::{Read, Write};
 
 use crate::{
   serialize::*,

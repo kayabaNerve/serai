@@ -1,4 +1,5 @@
-use std::sync::{Arc, RwLock};
+use alloc::{sync::Arc, vec::Vec};
+use spin::rwlock::RwLock;
 
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
@@ -68,20 +69,20 @@ impl SignableTransactionBuilderInternal {
 pub struct SignableTransactionBuilder(Arc<RwLock<SignableTransactionBuilderInternal>>);
 impl Clone for SignableTransactionBuilder {
   fn clone(&self) -> Self {
-    Self(Arc::new(RwLock::new((*self.0.read().unwrap()).clone())))
+    Self(Arc::new(RwLock::new((*self.0.read()).clone())))
   }
 }
 
 impl PartialEq for SignableTransactionBuilder {
   fn eq(&self, other: &Self) -> bool {
-    *self.0.read().unwrap() == *other.0.read().unwrap()
+    *self.0.read() == *other.0.read()
   }
 }
 impl Eq for SignableTransactionBuilder {}
 
 impl Zeroize for SignableTransactionBuilder {
   fn zeroize(&mut self) {
-    self.0.write().unwrap().zeroize()
+    self.0.write().zeroize()
   }
 }
 
@@ -99,25 +100,25 @@ impl SignableTransactionBuilder {
   }
 
   pub fn set_r_seed(&mut self, r_seed: Zeroizing<[u8; 32]>) -> Self {
-    self.0.write().unwrap().set_r_seed(r_seed);
+    self.0.write().set_r_seed(r_seed);
     self.shallow_copy()
   }
 
   pub fn add_input(&mut self, input: SpendableOutput) -> Self {
-    self.0.write().unwrap().add_input(input);
+    self.0.write().add_input(input);
     self.shallow_copy()
   }
   pub fn add_inputs(&mut self, inputs: &[SpendableOutput]) -> Self {
-    self.0.write().unwrap().add_inputs(inputs);
+    self.0.write().add_inputs(inputs);
     self.shallow_copy()
   }
 
   pub fn add_payment(&mut self, dest: MoneroAddress, amount: u64) -> Self {
-    self.0.write().unwrap().add_payment(dest, amount);
+    self.0.write().add_payment(dest, amount);
     self.shallow_copy()
   }
   pub fn add_payments(&mut self, payments: &[(MoneroAddress, u64)]) -> Self {
-    self.0.write().unwrap().add_payments(payments);
+    self.0.write().add_payments(payments);
     self.shallow_copy()
   }
 
@@ -125,12 +126,12 @@ impl SignableTransactionBuilder {
     if data.len() > MAX_ARBITRARY_DATA_SIZE {
       Err(TransactionError::TooMuchData)?;
     }
-    self.0.write().unwrap().add_data(data);
+    self.0.write().add_data(data);
     Ok(self.shallow_copy())
   }
 
   pub fn build(self) -> Result<SignableTransaction, TransactionError> {
-    let read = self.0.read().unwrap();
+    let read = self.0.read();
     SignableTransaction::new(
       read.protocol,
       read.r_seed.clone(),

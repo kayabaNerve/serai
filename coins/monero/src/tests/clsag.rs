@@ -1,6 +1,8 @@
 use core::ops::Deref;
 #[cfg(feature = "multisig")]
-use std::sync::{Arc, RwLock};
+use alloc::sync::Arc;
+#[cfg(feature = "multisig")]
+use spin::rwlock::RwLock;
 
 use zeroize::Zeroizing;
 use rand_core::{RngCore, OsRng};

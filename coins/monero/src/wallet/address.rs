@@ -1,7 +1,5 @@
 use core::{marker::PhantomData, fmt::Debug};
-use std::string::ToString;
-
-use thiserror::Error;
+use alloc::string::{String, ToString};
 
 use zeroize::Zeroize;
 
@@ -114,19 +112,13 @@ impl<B: AddressBytes> Zeroize for AddressMeta<B> {
 }
 
 /// Error when decoding an address.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Error)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum AddressError {
-  #[error("invalid address byte")]
   InvalidByte,
-  #[error("invalid address encoding")]
   InvalidEncoding,
-  #[error("invalid length")]
   InvalidLength,
-  #[error("invalid key")]
   InvalidKey,
-  #[error("unknown features")]
   UnknownFeatures,
-  #[error("different network than expected")]
   DifferentNetwork,
 }
 

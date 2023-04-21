@@ -1,8 +1,10 @@
 use core::{ops::Deref, fmt::Debug};
-use std::{
-  io::{self, Read, Write},
-  sync::{Arc, RwLock},
-};
+use alloc::{sync::Arc, vec::Vec};
+
+use spin::rwlock::RwLock;
+
+use nostd_io as io;
+use io::{Read, Write};
 
 use rand_core::{RngCore, CryptoRng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -133,11 +135,11 @@ impl ClsagMultisig {
   }
 
   fn input(&self) -> ClsagInput {
-    (*self.details.read().unwrap()).as_ref().unwrap().input.clone()
+    (*self.details.read()).as_ref().unwrap().input.clone()
   }
 
   fn mask(&self) -> Scalar {
-    (*self.details.read().unwrap()).as_ref().unwrap().mask
+    (*self.details.read()).as_ref().unwrap().mask
   }
 }
 

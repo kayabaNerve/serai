@@ -1,4 +1,5 @@
 use core::ops::{Add, Sub, Mul, Index};
+use alloc::vec::Vec;
 
 use zeroize::{Zeroize, ZeroizeOnDrop};
 

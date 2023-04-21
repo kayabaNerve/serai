@@ -1,8 +1,10 @@
-use std::{
-  io::{self, Read},
-  sync::{Arc, RwLock},
-  collections::HashMap,
-};
+use alloc::{sync::Arc, vec::Vec};
+use spin::rwlock::RwLock;
+
+use nostd_io as io;
+use io::{Read, Write};
+
+use hashbrown::HashMap;
 
 use zeroize::Zeroizing;
 
@@ -262,7 +264,7 @@ impl SignMachine<Transaction> for TransactionSignMachine {
         key_image: value.0,
       });
 
-      *value.3.write().unwrap() = Some(ClsagDetails::new(
+      *value.3.write() = Some(ClsagDetails::new(
         ClsagInput::new(value.1.commitment().clone(), value.2).map_err(|_| {
           panic!("Signing an input which isn't present in the ring we created for it")
         })?,

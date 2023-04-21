@@ -30,5 +30,3 @@ crypto-bigint = { version = "0.5", features = ["zeroize"] }
 
 [dev-dependencies]
 hex = "0.4"
-
-ff-group-tests = { path = "../ff-group-tests" }

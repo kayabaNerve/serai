@@ -1,6 +1,6 @@
 [workspace]
 members = [
-  "common/nostd_io",
+  "common/nostd-io",
 
   "crypto/transcript",
 

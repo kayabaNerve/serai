@@ -1,7 +1,12 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![doc = include_str!("../README.md")]
 
-use std::io;
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
+use nostd_io as io;
 
 use lazy_static::lazy_static;
 use rand_core::{RngCore, CryptoRng};

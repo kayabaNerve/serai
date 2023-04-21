@@ -1,7 +1,7 @@
 use core::{ops::Deref, fmt};
-use std::io;
+use alloc::{vec::Vec, string::{String, ToString}};
 
-use thiserror::Error;
+use nostd_io as io;
 
 use rand_core::{RngCore, CryptoRng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
@@ -115,30 +115,19 @@ impl SendOutput {
   }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug, Error)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum TransactionError {
-  #[error("multiple addresses with payment IDs")]
   MultiplePaymentIds,
-  #[error("no inputs")]
   NoInputs,
-  #[error("no outputs")]
   NoOutputs,
-  #[error("only one output and no change address")]
   NoChange,
-  #[error("too many outputs")]
   TooManyOutputs,
-  #[error("too much data")]
   TooMuchData,
-  #[error("too many inputs/too much arbitrary data")]
   TooLargeTransaction,
-  #[error("not enough funds (in {0}, out {1})")]
   NotEnoughFunds(u64, u64),
-  #[error("wrong spend private key")]
   WrongPrivateKey,
-  #[error("clsag error ({0})")]
   ClsagError(ClsagError),
   #[cfg(feature = "multisig")]
-  #[error("frost error {0}")]
   FrostError(FrostError),
 }
 

@@ -1,6 +1,9 @@
 #![allow(non_snake_case)]
 
-use std::io::{self, Read, Write};
+use alloc::vec::Vec;
+
+use nostd_io as io;
+use io::{Read, Write};
 
 use rand_core::{RngCore, CryptoRng};
 

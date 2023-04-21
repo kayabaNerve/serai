@@ -1,5 +1,6 @@
 use core::ops::Deref;
-use std::collections::{HashSet, HashMap};
+
+use hashbrown::{HashSet, HashMap};
 
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
@@ -36,7 +37,7 @@ pub(crate) use send::InternalPayment;
 #[cfg(feature = "multisig")]
 pub use send::TransactionMachine;
 
-fn key_image_sort(x: &EdwardsPoint, y: &EdwardsPoint) -> std::cmp::Ordering {
+fn key_image_sort(x: &EdwardsPoint, y: &EdwardsPoint) -> core::cmp::Ordering {
   x.compress().to_bytes().cmp(&y.compress().to_bytes()).reverse()
 }
 

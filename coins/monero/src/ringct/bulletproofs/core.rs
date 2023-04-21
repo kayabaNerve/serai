@@ -1,6 +1,8 @@
 // Required to be for this entire file, which isn't an issue, as it wouldn't bind to the static
 #![allow(non_upper_case_globals)]
 
+use alloc::vec::Vec;
+
 use lazy_static::lazy_static;
 use rand_core::{RngCore, CryptoRng};
 

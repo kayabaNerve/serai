@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use curve25519_dalek::edwards::EdwardsPoint;

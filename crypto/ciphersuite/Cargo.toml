@@ -37,8 +37,6 @@ minimal-ed448 = { path = "../ed448", version = "0.3", optional = true }
 [dev-dependencies]
 hex = "0.4"
 
-ff-group-tests = { version = "0.13", path = "../ff-group-tests" }
-
 [features]
 std = []
 

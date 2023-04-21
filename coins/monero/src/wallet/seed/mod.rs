@@ -1,25 +1,19 @@
 use core::fmt;
+use alloc::string::String;
 
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 use rand_core::{RngCore, CryptoRng};
-
-use thiserror::Error;
 
 pub(crate) mod classic;
 use classic::{CLASSIC_SEED_LENGTH, CLASSIC_SEED_LENGTH_WITH_CHECKSUM, ClassicSeed};
 
 /// Error when decoding a seed.
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Error)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum SeedError {
-  #[error("invalid number of words in seed")]
   InvalidSeedLength,
-  #[error("unknown language")]
   UnknownLanguage,
-  #[error("invalid checksum")]
   InvalidChecksum,
-  #[error("english old seeds don't support checksums")]
   EnglishOldWithChecksum,
-  #[error("invalid seed")]
   InvalidSeed,
 }
 
