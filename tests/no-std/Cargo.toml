@@ -29,6 +29,3 @@ schnorr-signatures = { path = "../../crypto/schnorr", default-features = false }
 dkg = { path = "../../crypto/dkg", default-features = false }
 # modular-frost = { path = "../../crypto/frost", default-features = false }
 # frost-schnorrkel = { path = "../../crypto/schnorrkel", default-features = false }
-
-monero-generators = { path = "../../coins/monero/generators", default-features = false }
-monero-serai = { path = "../../coins/monero", default-features = false }

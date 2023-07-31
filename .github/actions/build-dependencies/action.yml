@@ -25,13 +25,6 @@ runs:
       with:
         repo-token: ${{ inputs.github-token }}
 
-    - name: Install solc
-      shell: bash
-      run: |
-        pip3 install solc-select==0.2.1
-        solc-select install 0.8.16
-        solc-select use 0.8.16
-
     - name: Install Rust
       uses: dtolnay/rust-toolchain@master
       with:
@@ -39,5 +32,5 @@ runs:
         components: ${{ inputs.rust-components }}
         targets: wasm32-unknown-unknown, riscv32imac-unknown-none-elf
 
-    # - name: Cache Rust
-    #   uses: Swatinem/rust-cache@v2
+    - name: Cache Rust
+      uses: Swatinem/rust-cache@v2

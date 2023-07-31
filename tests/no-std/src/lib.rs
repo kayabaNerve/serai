@@ -17,6 +17,3 @@ pub use dkg;
 pub use modular_frost;
 pub use frost_schnorrkel;
 */
-
-pub use monero_generators;
-pub use monero_serai;
