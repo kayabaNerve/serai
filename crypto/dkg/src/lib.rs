@@ -123,14 +123,14 @@ mod lib {
   pub(crate) fn validate_map<T, B: Clone + PartialEq + Eq + Debug>(
     map: &HashMap<Participant, T>,
     included: &[Participant],
-    ours: Participant,
+    ours: Option<Participant>,
   ) -> Result<(), DkgError<B>> {
-    if (map.len() + 1) != included.len() {
+    if (map.len() + usize::from(u8::from(ours.is_some()))) != included.len() {
       Err(DkgError::InvalidParticipantQuantity(included.len(), map.len() + 1))?;
     }
 
     for included in included {
-      if *included == ours {
+      if Some(*included) == ours {
         if map.contains_key(included) {
           Err(DkgError::DuplicatedParticipant(*included))?;
         }

@@ -66,8 +66,6 @@ impl<C: Ciphersuite> ResharingMachine<C> {
     Some(ResharingMachine { share, params, context, _curve: PhantomData })
   }
 
-  /// Start generating a key according to the FROST DKG spec.
-  ///
   /// Returns a commitments message to be sent to all parties over an authenticated channel. If any
   /// party submits multiple sets of commitments, they MUST be treated as malicious.
   pub fn generate_coefficients<R: RngCore + CryptoRng>(
@@ -80,6 +78,7 @@ impl<C: Ciphersuite> ResharingMachine<C> {
     let mut cached_msg = vec![];
 
     coefficients.push(self.share);
+    commitments.push(C::generator() * coefficients[0].deref());
     for i in 1 .. t {
       // Step 1: Generate t random values to form a polynomial with
       coefficients.push(Zeroizing::new(C::random_nonzero_F(&mut *rng)));
@@ -159,7 +158,7 @@ impl<C: Ciphersuite> ResharingSecretMachine<C> {
     validate_map(
       &encryption_keys,
       &(1 ..= self.params.n).map(Participant).collect::<Vec<_>>(),
-      Participant(0),
+      None,
     )?;
 
     // Step 1: Generate secret shares for all other parties

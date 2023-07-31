@@ -254,7 +254,7 @@ impl<C: Ciphersuite> SecretShareMachine<C> {
     validate_map(
       &commitments,
       &(1 ..= self.params.n()).map(Participant).collect::<Vec<_>>(),
-      self.params.i(),
+      Some(self.params.i()),
     )?;
 
     let mut batch = BatchVerifier::<Participant, C::G>::new(commitments.len());
@@ -414,7 +414,7 @@ impl<C: Ciphersuite> KeyMachine<C> {
     validate_map(
       &shares,
       &(1 ..= self.params.n()).map(Participant).collect::<Vec<_>>(),
-      self.params.i(),
+      Some(self.params.i()),
     )?;
 
     let mut batch = BatchVerifier::new(shares.len());

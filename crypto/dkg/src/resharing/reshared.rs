@@ -84,7 +84,7 @@ impl<C: Ciphersuite> ResharedMachine<C> {
     params: ThresholdParams,
     context: String,
     commitments: Vec<EncryptionKeyMessage<C, Commitments<C>>>,
-  ) -> Result<(ResharedMachine<C>, Vec<u8>), ReshareError> {
+  ) -> Result<(ResharedMachine<C>, EncryptionKeyMessage<C, ()>), ReshareError> {
     let mut encryption = Encryption::new(context.clone(), params.i, rng);
     let msg = encryption.registration(());
 
@@ -116,7 +116,7 @@ impl<C: Ciphersuite> ResharedMachine<C> {
     // TODO: Document how this blame will not be valid
     batch.verify_vartime_with_vartime_blame().map_err(ReshareError::InvalidProofOfKnowledge)?;
 
-    Ok((ResharedMachine { params, commitments, encryption }, msg.serialize()))
+    Ok((ResharedMachine { params, commitments, encryption }, msg))
   }
 
   /// Accept private key shares from the resharers.
@@ -138,13 +138,8 @@ impl<C: Ciphersuite> ResharedMachine<C> {
     let mut secret = Zeroizing::new(C::F::ZERO);
     let mut batch = BatchVerifier::new(shares.len());
     for (l, share_bytes) in shares.into_iter().enumerate() {
-      let (mut share_bytes, _) = encryption.decrypt(
-        rng,
-        &mut batch,
-        (),
-        Participant((l + 1).try_into().unwrap()),
-        share_bytes,
-      );
+      let (mut share_bytes, _) =
+        encryption.decrypt(rng, &mut batch, (), Participant(0), share_bytes);
       let share = Zeroizing::new(
         Option::<C::F>::from(C::F::from_repr(share_bytes.0))
           .ok_or(ReshareError::InvalidShare { participant: Participant(0), blame: None })?,

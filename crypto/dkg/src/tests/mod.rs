@@ -15,6 +15,8 @@ pub use musig::test_musig;
 pub mod frost;
 use frost::frost_gen;
 
+mod resharing;
+
 // Promotion test.
 mod promote;
 use promote::test_generator_promotion;
