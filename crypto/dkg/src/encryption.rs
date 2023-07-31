@@ -37,6 +37,15 @@ mod sealed {
     }
   }
 
+  impl ReadWrite for () {
+    fn read<R: io::Read>(_: &mut R, _: ThresholdParams) -> io::Result<Self> {
+      Ok(())
+    }
+    fn write<W: io::Write>(&self, _: &mut W) -> io::Result<()> {
+      Ok(())
+    }
+  }
+
   pub trait Message: Clone + PartialEq + Eq + fmt::Debug + Zeroize + ReadWrite {}
   impl<M: Clone + PartialEq + Eq + fmt::Debug + Zeroize + ReadWrite> Message for M {}
 

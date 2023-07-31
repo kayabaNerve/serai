@@ -29,6 +29,8 @@ pub mod promote;
 #[cfg(any(test, feature = "tests"))]
 pub mod tests;
 
+pub mod resharing;
+
 /// The ID of a participant, defined as a non-zero u16.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Zeroize)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
