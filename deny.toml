@@ -42,9 +42,7 @@ copyleft = "deny"
 allow-osi-fsf-free = "neither"
 default = "deny"
 
-exceptions = [
-  { allow = ["AGPL-3.0"], name = "serai-env" },
-]
+exceptions = []
 
 [[licenses.clarify]]
 name = "ring"

@@ -1681,10 +1681,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serai-env"
-version = "0.1.0"
-
-[[package]]
 name = "serai-no-std-tests"
 version = "0.1.0"
 dependencies = [
