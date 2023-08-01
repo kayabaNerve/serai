@@ -393,8 +393,6 @@ fn get_secret_shares_rust(
   // TODO: Display commitments to be sent to everyone
 }
 
-pub struct ThresholdKeysWrapper(ThresholdKeys<Secp256k1>);
-
 #[repr(C)]
 pub struct KeyGenRes {
   multisig_id: [u8; 32],

@@ -3,13 +3,12 @@ use std::{str::FromStr, collections::HashMap};
 use rand_core::OsRng;
 
 use transcript::{Transcript, RecommendedTranscript};
-use ciphersuite::Secp256k1;
 use frost::{*, sign::*};
 
 use bitcoin_serai::{
   bitcoin::{
     consensus::Encodable,
-    network::constants::Network,
+    network::constants::Network as BNetwork,
     address::{NetworkUnchecked, Address},
   },
   wallet::*,
@@ -21,12 +20,31 @@ use serde::{Serialize, Deserialize};
 use crate::*;
 
 #[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Network {
+  Mainnet,
+  Testnet,
+  Regtest,
+}
+
+impl Network {
+  fn to_bitcoin(self) -> BNetwork {
+    match self {
+      Self::Mainnet => BNetwork::Bitcoin,
+      Self::Testnet => BNetwork::Testnet,
+      Self::Regtest => BNetwork::Regtest,
+    }
+  }
+}
+
+#[repr(C)]
 #[derive(Clone, PartialEq, Eq, Debug)]
-pub struct PortableOutput<'a> {
-  hash: [u8; 32],
-  vout: u32,
-  value: u64,
-  script_pubkey: &'a [u8],
+pub struct PortableOutput {
+  pub hash: [u8; 32],
+  pub vout: u32,
+  pub value: u64,
+  pub script_pubkey: *const u8,
+  pub script_pubkey_len: usize,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -51,6 +69,10 @@ impl OwnedPortableOutput {
     self.value
   }
   #[no_mangle]
+  pub extern "C" fn script_pubkey_len(&self) -> usize {
+    self.script_pubkey.len()
+  }
+  #[no_mangle]
   pub extern "C" fn script_pubkey(&self) -> *const u8 {
     self.script_pubkey.as_ptr()
   }
@@ -73,7 +95,8 @@ impl TryInto<ReceivedOutput> for OwnedPortableOutput {
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct SignConfig {
-  network: Network,
+  network: BNetwork,
+  #[allow(clippy::vec_box)]
   inputs: Vec<Box<OwnedPortableOutput>>,
   payments: Vec<(String, u64)>,
   change: String,
@@ -91,8 +114,16 @@ impl SignConfig {
     &self.inputs[i]
   }
   #[no_mangle]
-  pub extern "C" fn payments(&self) -> &[(String, u64)] {
-    &self.payments
+  pub extern "C" fn payments(&self) -> usize {
+    self.payments.len()
+  }
+  #[no_mangle]
+  pub extern "C" fn payment_address(&self, i: usize) -> StringView {
+    StringView::new(&self.payments[i].0)
+  }
+  #[no_mangle]
+  pub extern "C" fn payment_amount(&self, i: usize) -> u64 {
+    self.payments[i].1
   }
   #[no_mangle]
   pub extern "C" fn change(&self) -> StringView {
@@ -104,7 +135,7 @@ impl SignConfig {
   }
 }
 
-fn sign_config_to_tx(network: Network, config: &SignConfig) -> Result<SignableTransaction, u16> {
+fn sign_config_to_tx(network: BNetwork, config: &SignConfig) -> Result<SignableTransaction, u16> {
   SignableTransaction::new(
     config
       .inputs
@@ -145,14 +176,42 @@ fn sign_config_to_tx(network: Network, config: &SignConfig) -> Result<SignableTr
   })
 }
 
+#[repr(C)]
+pub struct SignConfigRes {
+  config: Box<SignConfig>,
+  encoded: OwnedString,
+}
+
 #[no_mangle]
-pub extern "C" fn new_sign_config(
+pub unsafe extern "C" fn new_sign_config(
   network: Network,
-  outputs: &[PortableOutput],
-  payments: &[(&str, u64)],
+  outputs: *const PortableOutput,
+  outputs_len: usize,
+  payments: usize,
+  payment_addresses: *const StringView,
+  payment_amounts: *const u64,
   change: StringView,
   fee_per_weight: u64,
-) -> Result<(SignConfig, OwnedString), u16> {
+) -> CResult<SignConfigRes> {
+  CResult::new(new_sign_config_rust(
+    network,
+    unsafe { std::slice::from_raw_parts(outputs, outputs_len) },
+    unsafe { std::slice::from_raw_parts(payment_addresses, payments) },
+    unsafe { std::slice::from_raw_parts(payment_amounts, payments) },
+    change,
+    fee_per_weight,
+  ))
+}
+
+fn new_sign_config_rust(
+  network: Network,
+  outputs: &[PortableOutput],
+  payment_addresses: &[StringView],
+  payment_amounts: &[u64],
+  change: StringView,
+  fee_per_weight: u64,
+) -> Result<SignConfigRes, u16> {
+  let network = network.to_bitcoin();
   let config = SignConfig {
     network,
     inputs: outputs
@@ -162,11 +221,20 @@ pub extern "C" fn new_sign_config(
           hash: output.hash,
           vout: output.vout,
           value: output.value,
-          script_pubkey: output.script_pubkey.to_vec(),
+          script_pubkey: (unsafe {
+            std::slice::from_raw_parts(output.script_pubkey, output.script_pubkey_len)
+          })
+          .to_vec(),
         })
       })
       .collect(),
-    payments: payments.iter().map(|(address, amount)| (address.to_string(), *amount)).collect(),
+    payments: payment_addresses
+      .iter()
+      .zip(payment_amounts)
+      .map(|(address, amount)| {
+        address.to_string().ok_or(INVALID_ADDRESS_ERROR).map(|address| (address, *amount))
+      })
+      .collect::<Result<_, _>>()?,
     change: change.to_string().ok_or(INVALID_ADDRESS_ERROR)?,
     fee_per_weight,
   };
@@ -174,14 +242,16 @@ pub extern "C" fn new_sign_config(
   sign_config_to_tx(network, &config)?;
 
   let res = Base64::encode_string(&bincode::serialize(&config).unwrap());
-  Ok((config, OwnedString::new(res)))
+  Ok(SignConfigRes { config: config.into(), encoded: OwnedString::new(res) })
 }
 
 #[no_mangle]
-pub extern "C" fn decode_sign_config(
-  network: Network,
-  encoded: StringView,
-) -> Result<SignConfig, u16> {
+pub extern "C" fn decode_sign_config(network: Network, encoded: StringView) -> CResult<SignConfig> {
+  CResult::new(decode_sign_config_rust(network, encoded))
+}
+
+fn decode_sign_config_rust(network: Network, encoded: StringView) -> Result<SignConfig, u16> {
+  let network = network.to_bitcoin();
   let decoded = bincode::deserialize::<SignConfig>(
     &Base64::decode_vec(&encoded.to_string().ok_or(INVALID_ENCODING_ERROR)?)
       .map_err(|_| INVALID_ENCODING_ERROR)?,
@@ -194,25 +264,58 @@ pub extern "C" fn decode_sign_config(
   Ok(decoded)
 }
 
+pub struct TransactionSignMachineWrapper(TransactionSignMachine);
+pub struct TransactionSignatureMachineWrapper(TransactionSignatureMachine);
+
+#[repr(C)]
+pub struct AttemptSignRes {
+  machine: Box<TransactionSignMachineWrapper>,
+  preprocess: OwnedString,
+}
+
 #[no_mangle]
 pub extern "C" fn attempt_sign(
-  keys: ThresholdKeys<Secp256k1>,
-  config: &SignConfig,
-) -> Result<(Box<TransactionSignMachine>, OwnedString), u16> {
+  keys: Box<ThresholdKeysWrapper>,
+  config: &Box<SignConfig>,
+) -> CResult<AttemptSignRes> {
+  CResult::new(attempt_sign_rust(keys, config))
+}
+
+fn attempt_sign_rust(
+  keys: Box<ThresholdKeysWrapper>,
+  config: &Box<SignConfig>,
+) -> Result<AttemptSignRes, u16> {
   let (machine, preprocesses) = sign_config_to_tx(config.network, config)
     .expect("created a SignConfig which couldn't create a TX")
-    .multisig(keys, RecommendedTranscript::new(b"HRF Sign Transaction"))
+    .multisig(keys.0, RecommendedTranscript::new(b"HRF Sign Transaction"))
     .ok_or(WRONG_KEYS_ERROR)?
     .preprocess(&mut OsRng);
-  Ok((machine.into(), OwnedString::new(Base64::encode_string(&preprocesses.serialize()))))
+  Ok(AttemptSignRes {
+    machine: TransactionSignMachineWrapper(machine).into(),
+    preprocess: OwnedString::new(Base64::encode_string(&preprocesses.serialize())),
+  })
+}
+
+#[repr(C)]
+pub struct ContinueSignRes {
+  machine: Box<TransactionSignatureMachineWrapper>,
+  preprocess: OwnedString,
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn continue_sign(
-  machine: Box<TransactionSignMachine>,
+  machine: Box<TransactionSignMachineWrapper>,
   preprocesses: *const StringView,
   preprocesses_len: usize,
-) -> Result<(Box<TransactionSignatureMachine>, OwnedString), u16> {
+) -> CResult<ContinueSignRes> {
+  CResult::new(continue_sign_rust(machine, preprocesses, preprocesses_len))
+}
+
+fn continue_sign_rust(
+  machine: Box<TransactionSignMachineWrapper>,
+  preprocesses: *const StringView,
+  preprocesses_len: usize,
+) -> Result<ContinueSignRes, u16> {
   let preprocesses = unsafe { std::slice::from_raw_parts(preprocesses, preprocesses_len) };
 
   let mut map = HashMap::new();
@@ -220,6 +323,7 @@ pub unsafe extern "C" fn continue_sign(
     map.insert(
       Participant::new(u16::try_from(i + 1).map_err(|_| INVALID_PARTICIPANT_ERROR)?).unwrap(),
       machine
+        .0
         .read_preprocess(
           &mut Base64::decode_vec(&preprocess.to_string().ok_or(INVALID_ENCODING_ERROR)?)
             .map_err(|_| INVALID_ENCODING_ERROR)?
@@ -228,22 +332,34 @@ pub unsafe extern "C" fn continue_sign(
         .map_err(|_| INVALID_ENCODING_ERROR)?,
     );
   }
-  let (machine, share) = machine.sign(map, &[]).map_err(|_| INVALID_PREPROCESS_ERROR)?;
-  Ok((machine.into(), OwnedString::new(Base64::encode_string(&share.serialize()))))
+  let (machine, share) = machine.0.sign(map, &[]).map_err(|_| INVALID_PREPROCESS_ERROR)?;
+  Ok(ContinueSignRes {
+    machine: TransactionSignatureMachineWrapper(machine).into(),
+    preprocess: OwnedString::new(Base64::encode_string(&share.serialize())),
+  })
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn complete_sign(
-  machine: Box<TransactionSignatureMachine>,
+  machine: Box<TransactionSignatureMachineWrapper>,
   shares: *const StringView,
   shares_len: usize,
-) -> Result<Vec<u8>, u16> {
-  let shares = unsafe { std::slice::from_raw_parts(shares, shares_len) };
+) -> CResult<OwnedString> {
+  CResult::new(complete_sign_rust(machine, unsafe {
+    std::slice::from_raw_parts(shares, shares_len)
+  }))
+}
+
+fn complete_sign_rust(
+  machine: Box<TransactionSignatureMachineWrapper>,
+  shares: &[StringView],
+) -> Result<OwnedString, u16> {
   let mut map = HashMap::new();
   for (i, share) in shares.iter().enumerate() {
     map.insert(
       Participant::new(u16::try_from(i + 1).map_err(|_| INVALID_PARTICIPANT_ERROR)?).unwrap(),
       machine
+        .0
         .read_share(
           &mut Base64::decode_vec(&share.to_string().ok_or(INVALID_ENCODING_ERROR)?)
             .map_err(|_| INVALID_ENCODING_ERROR)?
@@ -252,8 +368,8 @@ pub unsafe extern "C" fn complete_sign(
         .map_err(|_| INVALID_ENCODING_ERROR)?,
     );
   }
-  let tx = machine.complete(map).map_err(|_| INVALID_SHARE_ERROR)?;
+  let tx = machine.0.complete(map).map_err(|_| INVALID_SHARE_ERROR)?;
   let mut buf = Vec::with_capacity(1024);
   tx.consensus_encode(&mut buf).unwrap();
-  Ok(buf)
+  Ok(OwnedString::new(hex::encode(buf)))
 }

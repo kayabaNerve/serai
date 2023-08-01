@@ -63,15 +63,29 @@
 
 #define INVALID_PREPROCESS_ERROR 310
 
+typedef enum Network {
+  Mainnet,
+  Testnet,
+  Regtest,
+} Network;
+
 typedef struct KeyMachineWrapper KeyMachineWrapper;
 
 typedef struct MultisigConfig MultisigConfig;
 
+typedef struct OwnedPortableOutput OwnedPortableOutput;
+
 typedef struct SecretShareMachineWrapper SecretShareMachineWrapper;
+
+typedef struct SignConfig SignConfig;
 
 typedef struct String String;
 
 typedef struct ThresholdKeysWrapper ThresholdKeysWrapper;
+
+typedef struct TransactionSignMachineWrapper TransactionSignMachineWrapper;
+
+typedef struct TransactionSignatureMachineWrapper TransactionSignatureMachineWrapper;
 
 typedef struct Vec_u8 Vec_u8;
 
@@ -145,6 +159,54 @@ typedef struct CResult_ThresholdKeysWrapper {
   uint16_t err;
 } CResult_ThresholdKeysWrapper;
 
+typedef struct SignConfigRes {
+  struct SignConfig *config;
+  struct OwnedString encoded;
+} SignConfigRes;
+
+typedef struct CResult_SignConfigRes {
+  struct SignConfigRes *value;
+  uint16_t err;
+} CResult_SignConfigRes;
+
+typedef struct PortableOutput {
+  uint8_t hash[32];
+  uint32_t vout;
+  uint64_t value;
+  const uint8_t *script_pubkey;
+  uintptr_t script_pubkey_len;
+} PortableOutput;
+
+typedef struct CResult_SignConfig {
+  struct SignConfig *value;
+  uint16_t err;
+} CResult_SignConfig;
+
+typedef struct AttemptSignRes {
+  struct TransactionSignMachineWrapper *machine;
+  struct OwnedString preprocess;
+} AttemptSignRes;
+
+typedef struct CResult_AttemptSignRes {
+  struct AttemptSignRes *value;
+  uint16_t err;
+} CResult_AttemptSignRes;
+
+typedef struct ContinueSignRes {
+  struct TransactionSignatureMachineWrapper *machine;
+  struct OwnedString preprocess;
+} ContinueSignRes;
+
+typedef struct CResult_ContinueSignRes {
+  struct ContinueSignRes *value;
+  uint16_t err;
+} CResult_ContinueSignRes;
+
+typedef struct CResult_OwnedString {
+  struct OwnedString *value;
+  uint16_t err;
+} CResult_OwnedString;
+
 void free(struct OwnedString self);
 
 struct StringView multisig_name(const struct MultisigConfig *self);
@@ -188,3 +250,49 @@ struct CResult_KeyGenRes complete_key_gen(struct MultisigConfigWithName *config,
 struct OwnedString serialize_keys(struct ThresholdKeysWrapper *keys);
 
 struct CResult_ThresholdKeysWrapper deserialize_keys(struct StringView keys);
+
+const uint8_t *hash(const struct OwnedPortableOutput *self);
+
+uint32_t vout(const struct OwnedPortableOutput *self);
+
+uint64_t value(const struct OwnedPortableOutput *self);
+
+uintptr_t script_pubkey_len(const struct OwnedPortableOutput *self);
+
+const uint8_t *script_pubkey(const struct OwnedPortableOutput *self);
+
+uintptr_t inputs(const struct SignConfig *self);
+
+struct OwnedPortableOutput *const *input(const struct SignConfig *self, uintptr_t i);
+
+uintptr_t payments(const struct SignConfig *self);
+
+struct StringView payment_address(const struct SignConfig *self, uintptr_t i);
+
+uint64_t payment_amount(const struct SignConfig *self, uintptr_t i);
+
+struct StringView change(const struct SignConfig *self);
+
+uint64_t fee_per_weight(const struct SignConfig *self);
+
+struct CResult_SignConfigRes new_sign_config(enum Network network,
+                                             const struct PortableOutput *outputs,
+                                             uintptr_t outputs_len,
+                                             uintptr_t payments,
+                                             const struct StringView *payment_addresses,
+                                             const uint64_t *payment_amounts,
+                                             struct StringView change,
+                                             uint64_t fee_per_weight);
+
+struct CResult_SignConfig decode_sign_config(enum Network network, struct StringView encoded);
+
+struct CResult_AttemptSignRes attempt_sign(struct ThresholdKeysWrapper *keys,
+                                           struct SignConfig *const *config);
+
+struct CResult_ContinueSignRes continue_sign(struct TransactionSignMachineWrapper *machine,
+                                             const struct StringView *preprocesses,
+                                             uintptr_t preprocesses_len);
+
+struct CResult_OwnedString complete_sign(struct TransactionSignatureMachineWrapper *machine,
+                                         const struct StringView *shares,
+                                         uintptr_t shares_len);

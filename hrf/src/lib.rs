@@ -1,9 +1,9 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![allow(clippy::missing_safety_doc)]
-#![allow(clippy::box_collection, clippy::boxed_local)]
+#![allow(clippy::borrowed_box, clippy::box_collection, clippy::boxed_local)]
 
 pub mod key_gen;
-// pub mod sign;
+pub mod sign;
 
 // Seed languages
 pub const LANGUAGE_ENGLISH: u16 = 1;
@@ -87,3 +87,5 @@ impl<T> CResult<T> {
     }
   }
 }
+
+pub struct ThresholdKeysWrapper(frost::dkg::ThresholdKeys<ciphersuite::Secp256k1>);
