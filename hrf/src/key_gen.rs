@@ -23,10 +23,29 @@ pub struct MultisigConfig {
   threshold: u16,
   participants: Vec<String>,
   // TODO: The wallet MUST check this salt hasn't been prior observed in any prior protocol.
+  // It's probably fine in practice since every honest user will use a distinct seed entirely,
+  // and malicious parties are already accounted for in the threshold selection.
+  // It's still best practice for the wallet to save prior seen salts and check
   salt: [u8; 32],
 }
 
 impl MultisigConfig {
+  pub fn multisig_name(&self) -> &str {
+    &self.multisig_name
+  }
+
+  pub fn threshold(&self) -> u16 {
+    self.threshold
+  }
+
+  pub fn participants(&self) -> &[String] {
+    &self.participants
+  }
+
+  pub fn salt(&self) -> [u8; 32] {
+    self.salt
+  }
+
   fn context(&self) -> String {
     let mut context = RecommendedTranscript::new(b"HRF Multisig Context String");
     context.append_message(b"name", self.multisig_name.as_bytes());
@@ -46,7 +65,15 @@ pub struct MultisigConfigWithName {
 }
 
 impl MultisigConfigWithName {
-  fn params(&self) -> Result<ThresholdParams, u8> {
+  pub fn config(&self) -> &MultisigConfig {
+    &self.config
+  }
+
+  pub fn my_name(&self) -> &str {
+    &self.my_name
+  }
+
+  fn params(&self) -> Result<ThresholdParams, u16> {
     let mut my_index = 0;
     while (my_index < self.config.participants.len()) &&
       (self.config.participants[my_index] != self.my_name)
@@ -69,7 +96,7 @@ impl MultisigConfigWithName {
   }
 }
 
-fn check_t_n(threshold: u16, participants: u16) -> Result<(), u8> {
+fn check_t_n(threshold: u16, participants: u16) -> Result<(), u16> {
   match ThresholdParams::new(threshold, participants, Participant::new(1).unwrap()) {
     Err(DkgError::ZeroParameter(..)) => Err(ZERO_PARAMETER_ERROR)?,
     Err(DkgError::InvalidThreshold(..)) => Err(INVALID_THRESHOLD_ERROR)?,
@@ -83,7 +110,7 @@ pub fn new_multisig_config(
   multisig_name: &[u8],
   threshold: u16,
   participants: &[&[u8]],
-) -> Result<MultisigConfig, u8> {
+) -> Result<MultisigConfig, u16> {
   let Ok(participants_len) = u16::try_from(participants.len()) else {
     Err(INVALID_PARTICIPANT_ERROR)?
   };
@@ -126,10 +153,11 @@ pub fn serialize_multisig_config(multisig: &MultisigConfig) -> String {
   Base64::encode_string(&bincode::serialize(multisig).unwrap())
 }
 
-pub fn deserialize_multisig_config(config: &str) -> Result<MultisigConfig, u8> {
+pub fn deserialize_multisig_config(config: &str) -> Result<MultisigConfig, u16> {
   let Ok(config) = Base64::decode_vec(config) else { Err(INVALID_ENCODING_ERROR)? };
-  let Ok(config) =
-    bincode::deserialize::<MultisigConfig>(&config) else { Err(INVALID_ENCODING_ERROR)? };
+  let Ok(config) = bincode::deserialize::<MultisigConfig>(&config) else {
+    Err(INVALID_ENCODING_ERROR)?
+  };
 
   let Ok(participants_len) = u16::try_from(config.participants.len()) else {
     Err(INVALID_PARTICIPANT_ERROR)?
@@ -143,7 +171,7 @@ fn inner_key_gen(
   config: MultisigConfig,
   my_name: &str,
   seed: &[u8; 16],
-) -> Result<(MultisigConfigWithName, SecretShareMachine<Secp256k1>, String), u8> {
+) -> Result<(MultisigConfigWithName, SecretShareMachine<Secp256k1>, String), u16> {
   let config = MultisigConfigWithName { config, my_name: my_name.to_string() };
 
   let context = config.config.context();
@@ -162,8 +190,8 @@ fn inner_key_gen(
 pub fn start_key_gen(
   config: MultisigConfig,
   my_name: &str,
-  language: u8,
-) -> Result<(String, MultisigConfigWithName, SecretShareMachine<Secp256k1>, String), u8> {
+  language: u16,
+) -> Result<(String, MultisigConfigWithName, SecretShareMachine<Secp256k1>, String), u16> {
   // 128-bits of entropy for a 12-word seed
   let mut seed = Zeroizing::new([0; 16]);
   OsRng.fill_bytes(seed.as_mut());
@@ -200,23 +228,28 @@ pub type RecoverableKeyMachine = (KeyMachine<Secp256k1>, Vec<u8>);
 
 pub fn get_secret_shares(
   config: MultisigConfigWithName,
-  language: u8,
+  language: u16,
   seed: &str,
   machine: SecretShareMachine<Secp256k1>,
   commitments: &[&str],
-) -> Result<(RecoverableKeyMachine, String), u8> {
+) -> Result<(RecoverableKeyMachine, String), u16> {
   let mut secret_shares_rng = RecommendedTranscript::new(b"HRF Key Gen Secret Shares RNG");
-  let Ok(mnemonic) = Mnemonic::from_phrase(seed, match language {
-    LANGUAGE_ENGLISH => Language::English,
-    LANGUAGE_CHINESE_SIMPLIFIED => Language::ChineseSimplified,
-    LANGUAGE_CHINESE_TRADITIONAL => Language::ChineseTraditional,
-    LANGUAGE_FRENCH => Language::French,
-    LANGUAGE_ITALIAN => Language::Italian,
-    LANGUAGE_JAPANESE => Language::Japanese,
-    LANGUAGE_KOREAN => Language::Korean,
-    LANGUAGE_SPANISH => Language::Spanish,
-    _ => Err(UNKNOWN_LANGUAGE_ERROR)?,
-  }) else { Err(INVALID_SEED_ERROR)? };
+  let Ok(mnemonic) = Mnemonic::from_phrase(
+    seed,
+    match language {
+      LANGUAGE_ENGLISH => Language::English,
+      LANGUAGE_CHINESE_SIMPLIFIED => Language::ChineseSimplified,
+      LANGUAGE_CHINESE_TRADITIONAL => Language::ChineseTraditional,
+      LANGUAGE_FRENCH => Language::French,
+      LANGUAGE_ITALIAN => Language::Italian,
+      LANGUAGE_JAPANESE => Language::Japanese,
+      LANGUAGE_KOREAN => Language::Korean,
+      LANGUAGE_SPANISH => Language::Spanish,
+      _ => Err(UNKNOWN_LANGUAGE_ERROR)?,
+    },
+  ) else {
+    Err(INVALID_SEED_ERROR)?
+  };
   secret_shares_rng.append_message(b"seed", mnemonic.entropy());
   secret_shares_rng.append_message(b"context", config.config.context().as_bytes());
   let mut secret_shares_rng = ChaCha20Rng::from_seed(secret_shares_rng.rng_seed(b"rng"));
@@ -229,22 +262,21 @@ pub fn get_secret_shares(
   let mut commitments_map = HashMap::new();
   for (i, commitments) in commitments.iter().enumerate() {
     let i = Participant::new(u16::try_from(i).unwrap() + 1).unwrap();
-    let Ok(commitments) = Base64::decode_vec(commitments) else {
-      Err(INVALID_ENCODING_ERROR)?
-    };
-    let Ok(message) = EncryptionKeyMessage::<
-      Secp256k1,
-      Commitments<Secp256k1>
-    >::read(&mut commitments.as_slice(), params) else {
+    let Ok(commitments) = Base64::decode_vec(commitments) else { Err(INVALID_ENCODING_ERROR)? };
+    let Ok(message) = EncryptionKeyMessage::<Secp256k1, Commitments<Secp256k1>>::read(
+      &mut commitments.as_slice(),
+      params,
+    ) else {
       Err(INVALID_ENCODING_ERROR)?
     };
     commitments_map.insert(i, message);
   }
 
   let Ok((machine, shares)) =
-    machine.generate_secret_shares(&mut secret_shares_rng, commitments_map) else {
-      Err(INVALID_COMMITMENTS_ERROR)?
-    };
+    machine.generate_secret_shares(&mut secret_shares_rng, commitments_map)
+  else {
+    Err(INVALID_COMMITMENTS_ERROR)?
+  };
 
   let mut serialized_shares = shares
     .into_iter()
@@ -268,7 +300,7 @@ pub fn complete_key_gen(
   config: MultisigConfigWithName,
   machine_and_commitments: RecoverableKeyMachine,
   shares: &[&str],
-) -> Result<([u8; 32], ThresholdKeys<Secp256k1>, String), u8> {
+) -> Result<([u8; 32], ThresholdKeys<Secp256k1>, String), u16> {
   let params = config.params().unwrap();
   let (machine, commitments) = machine_and_commitments;
 
@@ -279,19 +311,18 @@ pub fn complete_key_gen(
   let mut shares_map = HashMap::new();
   for (i, shares) in shares.iter().enumerate() {
     let i = Participant::new(u16::try_from(i).unwrap() + 1).unwrap();
-    let Ok(linearized_shares) = Base64::decode_vec(shares) else {
-      Err(INVALID_ENCODING_ERROR)?
-    };
+    let Ok(linearized_shares) = Base64::decode_vec(shares) else { Err(INVALID_ENCODING_ERROR)? };
     let mut reader_slice = linearized_shares.as_slice();
     let reader = &mut reader_slice;
 
     let mut shares_from_i = HashMap::new();
     for l in 0 .. config.config.participants.len() {
       let l = Participant::new(u16::try_from(l).unwrap() + 1).unwrap();
-      let Ok(message) = EncryptedMessage::<
-        Secp256k1,
-        SecretShare<<Secp256k1 as Ciphersuite>::F>
-      >::read(reader, params) else {
+      let Ok(message) =
+        EncryptedMessage::<Secp256k1, SecretShare<<Secp256k1 as Ciphersuite>::F>>::read(
+          reader, params,
+        )
+      else {
         Err(INVALID_ENCODING_ERROR)?
       };
       shares_from_i.insert(l, message);
@@ -302,7 +333,10 @@ pub fn complete_key_gen(
   let Some(my_shares) = shares_map
     .into_iter()
     .map(|(l, mut shares)| shares.remove(&params.i()).map(|s| (l, s)))
-    .collect::<Option<HashMap<_, _>>>() else { Err(INVALID_SHARE_ERROR)? };
+    .collect::<Option<HashMap<_, _>>>()
+  else {
+    Err(INVALID_SHARE_ERROR)?
+  };
 
   // Doesn't use a seeded RNG since this only uses the RNG for batch verification
   let Ok(machine) = machine.calculate_share(&mut OsRng, my_shares) else {
