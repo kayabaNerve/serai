@@ -1,4 +1,5 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![allow(clippy::missing_safety_doc)]
 
 pub mod key_gen;
 pub mod sign;
@@ -40,3 +41,34 @@ pub const NOT_ENOUGH_FUNDS_ERROR: u16 = 307;
 pub const TOO_LARGE_TRANSACTION_ERROR: u16 = 308;
 pub const WRONG_KEYS_ERROR: u16 = 309;
 pub const INVALID_PREPROCESS_ERROR: u16 = 310;
+
+#[repr(C)]
+pub struct StringView {
+  pub ptr: *const u8,
+  pub len: usize,
+}
+impl StringView {
+  pub(crate) fn new(to_view: &str) -> StringView {
+    StringView { ptr: to_view.as_ptr(), len: to_view.len() }
+  }
+  pub(crate) fn to_string(&self) -> Option<String> {
+    let slice = unsafe { std::slice::from_raw_parts(self.ptr, self.len) };
+    String::from_utf8(slice.to_vec()).ok()
+  }
+}
+
+#[repr(C)]
+pub struct OwnedString {
+  str_box: *mut String,
+  pub ptr: *const u8,
+  pub len: usize,
+}
+impl OwnedString {
+  pub(crate) fn new(str: String) -> OwnedString {
+    OwnedString { ptr: str.as_ptr(), len: str.len(), str_box: Box::into_raw(Box::new(str)) }
+  }
+  #[no_mangle]
+  pub extern "C" fn free(self) {
+    drop(unsafe { Box::from_raw(self.str_box) });
+  }
+}

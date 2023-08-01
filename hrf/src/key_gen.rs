@@ -30,20 +30,29 @@ pub struct MultisigConfig {
 }
 
 impl MultisigConfig {
-  pub fn multisig_name(&self) -> &str {
-    &self.multisig_name
+  #[no_mangle]
+  pub extern "C" fn multisig_name(&self) -> StringView {
+    StringView::new(&self.multisig_name)
   }
 
-  pub fn threshold(&self) -> u16 {
+  #[no_mangle]
+  pub extern "C" fn threshold(&self) -> u16 {
     self.threshold
   }
 
-  pub fn participants(&self) -> &[String] {
-    &self.participants
+  #[no_mangle]
+  pub extern "C" fn participants(&self) -> usize {
+    self.participants.len()
   }
 
-  pub fn salt(&self) -> [u8; 32] {
-    self.salt
+  #[no_mangle]
+  pub extern "C" fn participant(&self, i: usize) -> StringView {
+    StringView::new(&self.participants[i])
+  }
+
+  #[no_mangle]
+  pub extern "C" fn salt(&self) -> *const u8 {
+    self.salt.as_ptr()
   }
 
   fn context(&self) -> String {
@@ -58,6 +67,7 @@ impl MultisigConfig {
   }
 }
 
+#[repr(C)]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MultisigConfigWithName {
   config: MultisigConfig,
@@ -65,12 +75,14 @@ pub struct MultisigConfigWithName {
 }
 
 impl MultisigConfigWithName {
-  pub fn config(&self) -> &MultisigConfig {
+  #[no_mangle]
+  pub extern "C" fn config(&self) -> &MultisigConfig {
     &self.config
   }
 
-  pub fn my_name(&self) -> &str {
-    &self.my_name
+  #[no_mangle]
+  pub extern "C" fn my_name(&self) -> StringView {
+    StringView::new(&self.my_name)
   }
 
   fn params(&self) -> Result<ThresholdParams, u16> {
@@ -106,27 +118,33 @@ fn check_t_n(threshold: u16, participants: u16) -> Result<(), u16> {
   }
 }
 
-pub fn new_multisig_config(
-  multisig_name: &[u8],
+#[no_mangle]
+pub unsafe extern "C" fn new_multisig_config(
+  multisig_name: *const u8,
+  multisig_name_len: usize,
   threshold: u16,
-  participants: &[&[u8]],
-) -> Result<MultisigConfig, u16> {
-  let Ok(participants_len) = u16::try_from(participants.len()) else {
-    Err(INVALID_PARTICIPANT_ERROR)?
-  };
-
+  participants: *const StringView,
+  participants_len: u16,
+) -> Result<(Box<MultisigConfig>, OwnedString), u16> {
   check_t_n(threshold, participants_len)?;
+
+  if multisig_name_len == 0 {
+    Err(INVALID_NAME_ERROR)?;
+  }
+
+  let multisig_name = unsafe { std::slice::from_raw_parts(multisig_name, multisig_name_len) };
+  let participants = unsafe { std::slice::from_raw_parts(participants, participants_len.into()) };
 
   let Ok(multisig_name) = String::from_utf8(multisig_name.to_vec()) else {
     Err(INVALID_NAME_ERROR)?
   };
+  let mut participants_res = vec![];
   for participant in participants {
-    if participant.is_empty() {
+    if participant.len == 0 {
       Err(INVALID_NAME_ERROR)?;
     }
-    if String::from_utf8(participant.to_vec()).is_err() {
-      Err(INVALID_NAME_ERROR)?;
-    }
+    let Some(participant) = participant.to_string() else { Err(INVALID_NAME_ERROR)? };
+    participants_res.push(participant);
   }
 
   // All multisigs should have a unique context string
@@ -137,24 +155,16 @@ pub fn new_multisig_config(
   let mut salt = [0; 32];
   OsRng.fill_bytes(&mut salt);
 
-  Ok(MultisigConfig {
-    multisig_name,
-    threshold,
-    participants: participants
-      .iter()
-      .map(|p| String::from_utf8(p.to_vec()))
-      .collect::<Result<_, _>>()
-      .unwrap(),
-    salt,
-  })
+  let config = MultisigConfig { multisig_name, threshold, participants: participants_res, salt };
+  let string = OwnedString::new(Base64::encode_string(&bincode::serialize(&config).unwrap()));
+  Ok((config.into(), string))
 }
 
-pub fn serialize_multisig_config(multisig: &MultisigConfig) -> String {
-  Base64::encode_string(&bincode::serialize(multisig).unwrap())
-}
-
-pub fn deserialize_multisig_config(config: &str) -> Result<MultisigConfig, u16> {
-  let Ok(config) = Base64::decode_vec(config) else { Err(INVALID_ENCODING_ERROR)? };
+#[no_mangle]
+pub extern "C" fn decode_multisig_config(config: StringView) -> Result<Box<MultisigConfig>, u16> {
+  let Ok(config) = Base64::decode_vec(&config.to_string().ok_or(INVALID_ENCODING_ERROR)?) else {
+    Err(INVALID_ENCODING_ERROR)?
+  };
   let Ok(config) = bincode::deserialize::<MultisigConfig>(&config) else {
     Err(INVALID_ENCODING_ERROR)?
   };
@@ -164,15 +174,16 @@ pub fn deserialize_multisig_config(config: &str) -> Result<MultisigConfig, u16> 
   };
   check_t_n(config.threshold, participants_len)?;
 
-  Ok(config)
+  Ok(config.into())
 }
 
 fn inner_key_gen(
   config: MultisigConfig,
-  my_name: &str,
+  my_name: StringView,
   seed: &[u8; 16],
-) -> Result<(MultisigConfigWithName, SecretShareMachine<Secp256k1>, String), u16> {
-  let config = MultisigConfigWithName { config, my_name: my_name.to_string() };
+) -> Result<(MultisigConfigWithName, SecretShareMachine<Secp256k1>, OwnedString), u16> {
+  let config =
+    MultisigConfigWithName { config, my_name: my_name.to_string().ok_or(INVALID_NAME_ERROR)? };
 
   let context = config.config.context();
 
@@ -184,58 +195,66 @@ fn inner_key_gen(
   let (machine, commitments) = KeyGenMachine::<Secp256k1>::new(config.params()?, context)
     .generate_coefficients(&mut coefficients_rng);
 
-  Ok((config, machine, Base64::encode_string(&commitments.serialize())))
+  Ok((config, machine, OwnedString::new(Base64::encode_string(&commitments.serialize()))))
 }
 
-pub fn start_key_gen(
-  config: MultisigConfig,
-  my_name: &str,
+#[no_mangle]
+pub extern "C" fn start_key_gen(
+  config: Box<MultisigConfig>,
+  my_name: StringView,
   language: u16,
-) -> Result<(String, MultisigConfigWithName, SecretShareMachine<Secp256k1>, String), u16> {
+) -> Result<
+  (OwnedString, Box<MultisigConfigWithName>, Box<SecretShareMachine<Secp256k1>>, OwnedString),
+  u16,
+> {
   // 128-bits of entropy for a 12-word seed
   let mut seed = Zeroizing::new([0; 16]);
   OsRng.fill_bytes(seed.as_mut());
 
-  let (config, machine, commitments) = inner_key_gen(config, my_name, &seed)?;
+  let (config, machine, commitments) = inner_key_gen(*config, my_name, &seed)?;
 
   // TODO: Screen where the seed is converted to a Bitcoin seed and displayed for backup
   // TODO: Screen where the commitments are displayed for transmision to everyone else
 
   Ok((
-    Mnemonic::from_entropy(
-      seed.as_ref(),
-      match language {
-        LANGUAGE_ENGLISH => Language::English,
-        LANGUAGE_CHINESE_SIMPLIFIED => Language::ChineseSimplified,
-        LANGUAGE_CHINESE_TRADITIONAL => Language::ChineseTraditional,
-        LANGUAGE_FRENCH => Language::French,
-        LANGUAGE_ITALIAN => Language::Italian,
-        LANGUAGE_JAPANESE => Language::Japanese,
-        LANGUAGE_KOREAN => Language::Korean,
-        LANGUAGE_SPANISH => Language::Spanish,
-        _ => Err(UNKNOWN_LANGUAGE_ERROR)?,
-      },
-    )
-    .unwrap()
-    .to_string(),
-    config,
-    machine,
+    OwnedString::new(
+      Mnemonic::from_entropy(
+        seed.as_ref(),
+        match language {
+          LANGUAGE_ENGLISH => Language::English,
+          LANGUAGE_CHINESE_SIMPLIFIED => Language::ChineseSimplified,
+          LANGUAGE_CHINESE_TRADITIONAL => Language::ChineseTraditional,
+          LANGUAGE_FRENCH => Language::French,
+          LANGUAGE_ITALIAN => Language::Italian,
+          LANGUAGE_JAPANESE => Language::Japanese,
+          LANGUAGE_KOREAN => Language::Korean,
+          LANGUAGE_SPANISH => Language::Spanish,
+          _ => Err(UNKNOWN_LANGUAGE_ERROR)?,
+        },
+      )
+      .unwrap()
+      .to_string(),
+    ),
+    config.into(),
+    machine.into(),
     commitments,
   ))
 }
 
 pub type RecoverableKeyMachine = (KeyMachine<Secp256k1>, Vec<u8>);
 
-pub fn get_secret_shares(
-  config: MultisigConfigWithName,
+#[no_mangle]
+pub unsafe extern "C" fn get_secret_shares(
+  config: Box<MultisigConfigWithName>,
   language: u16,
-  seed: &str,
-  machine: SecretShareMachine<Secp256k1>,
-  commitments: &[&str],
-) -> Result<(RecoverableKeyMachine, String), u16> {
+  seed: StringView,
+  machine: Box<SecretShareMachine<Secp256k1>>,
+  commitments: *const StringView,
+  commitments_len: usize,
+) -> Result<(RecoverableKeyMachine, OwnedString), u16> {
   let mut secret_shares_rng = RecommendedTranscript::new(b"HRF Key Gen Secret Shares RNG");
   let Ok(mnemonic) = Mnemonic::from_phrase(
-    seed,
+    &seed.to_string().ok_or(INVALID_SEED_ERROR)?,
     match language {
       LANGUAGE_ENGLISH => Language::English,
       LANGUAGE_CHINESE_SIMPLIFIED => Language::ChineseSimplified,
@@ -256,13 +275,19 @@ pub fn get_secret_shares(
 
   let params = config.params().unwrap();
 
+  let commitments = unsafe { std::slice::from_raw_parts(commitments, commitments_len) };
   if commitments.len() != config.config.participants.len() {
     Err(INVALID_AMOUNT_OF_COMMITMENTS_ERROR)?;
   }
+  let mut new_commitments = vec![];
   let mut commitments_map = HashMap::new();
   for (i, commitments) in commitments.iter().enumerate() {
     let i = Participant::new(u16::try_from(i).unwrap() + 1).unwrap();
-    let Ok(commitments) = Base64::decode_vec(commitments) else { Err(INVALID_ENCODING_ERROR)? };
+    let Ok(commitments) =
+      Base64::decode_vec(&commitments.to_string().ok_or(INVALID_ENCODING_ERROR)?)
+    else {
+      Err(INVALID_ENCODING_ERROR)?
+    };
     let Ok(message) = EncryptionKeyMessage::<Secp256k1, Commitments<Secp256k1>>::read(
       &mut commitments.as_slice(),
       params,
@@ -270,7 +295,10 @@ pub fn get_secret_shares(
       Err(INVALID_ENCODING_ERROR)?
     };
     commitments_map.insert(i, message);
+
+    new_commitments.push(commitments);
   }
+  let commitments = new_commitments;
 
   let Ok((machine, shares)) =
     machine.generate_secret_shares(&mut secret_shares_rng, commitments_map)
@@ -289,18 +317,19 @@ pub fn get_secret_shares(
   }
 
   Ok((
-    (machine, bincode::serialize(commitments).unwrap()),
-    Base64::encode_string(&bincode::serialize(&linearized_shares).unwrap()),
+    (machine, bincode::serialize(&commitments).unwrap()),
+    OwnedString::new(Base64::encode_string(&bincode::serialize(&linearized_shares).unwrap())),
   ))
 
   // TODO: Display commitments to be sent to everyone
 }
 
-pub fn complete_key_gen(
-  config: MultisigConfigWithName,
+#[no_mangle]
+pub extern "C" fn complete_key_gen(
+  config: Box<MultisigConfigWithName>,
   machine_and_commitments: RecoverableKeyMachine,
   shares: &[&str],
-) -> Result<([u8; 32], ThresholdKeys<Secp256k1>, String), u16> {
+) -> Result<([u8; 32], ThresholdKeys<Secp256k1>, OwnedString), u16> {
   let params = config.params().unwrap();
   let (machine, commitments) = machine_and_commitments;
 
@@ -352,7 +381,11 @@ pub fn complete_key_gen(
   id.append_message(b"recovery", &recovery);
   let id = id.challenge(b"id");
 
-  Ok((id.as_slice().try_into().unwrap(), keys.into(), Base64::encode_string(&recovery)))
+  Ok((
+    id.as_slice().try_into().unwrap(),
+    keys.into(),
+    OwnedString::new(Base64::encode_string(&recovery)),
+  ))
 
   // TODO: Have everyone confirm they have the same 32-byte ID
   // TODO: Give everyone the option to save the recovery string
