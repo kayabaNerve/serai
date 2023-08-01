@@ -1,8 +1,9 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 #![allow(clippy::missing_safety_doc)]
+#![allow(clippy::box_collection, clippy::boxed_local)]
 
 pub mod key_gen;
-pub mod sign;
+// pub mod sign;
 
 // Seed languages
 pub const LANGUAGE_ENGLISH: u16 = 1;
@@ -70,5 +71,19 @@ impl OwnedString {
   #[no_mangle]
   pub extern "C" fn free(self) {
     drop(unsafe { Box::from_raw(self.str_box) });
+  }
+}
+
+#[repr(C)]
+pub struct CResult<T> {
+  value: Box<T>,
+  err: u16,
+}
+impl<T> CResult<T> {
+  pub(crate) fn new(res: Result<T, u16>) -> Self {
+    match res {
+      Ok(value) => CResult { value: value.into(), err: 0 },
+      Err(e) => CResult { value: unsafe { Box::from_raw(std::ptr::null_mut()) }, err: e },
+    }
   }
 }

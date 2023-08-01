@@ -1,142 +1,181 @@
-#include <cstdarg>
-#include <cstdint>
-#include <cstdlib>
-#include <ostream>
-#include <new>
+#include <stdarg.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-constexpr static const uint16_t LANGUAGE_ENGLISH = 1;
+#define LANGUAGE_ENGLISH 1
 
-constexpr static const uint16_t LANGUAGE_CHINESE_SIMPLIFIED = 2;
+#define LANGUAGE_CHINESE_SIMPLIFIED 2
 
-constexpr static const uint16_t LANGUAGE_CHINESE_TRADITIONAL = 3;
+#define LANGUAGE_CHINESE_TRADITIONAL 3
 
-constexpr static const uint16_t LANGUAGE_FRENCH = 4;
+#define LANGUAGE_FRENCH 4
 
-constexpr static const uint16_t LANGUAGE_ITALIAN = 5;
+#define LANGUAGE_ITALIAN 5
 
-constexpr static const uint16_t LANGUAGE_JAPANESE = 6;
+#define LANGUAGE_JAPANESE 6
 
-constexpr static const uint16_t LANGUAGE_KOREAN = 7;
+#define LANGUAGE_KOREAN 7
 
-constexpr static const uint16_t LANGUAGE_SPANISH = 8;
+#define LANGUAGE_SPANISH 8
 
-constexpr static const uint16_t UNKNOWN_ERROR = 101;
+#define UNKNOWN_ERROR 101
 
-constexpr static const uint16_t INVALID_ENCODING_ERROR = 102;
+#define INVALID_ENCODING_ERROR 102
 
-constexpr static const uint16_t INVALID_PARTICIPANT_ERROR = 103;
+#define INVALID_PARTICIPANT_ERROR 103
 
-constexpr static const uint16_t INVALID_SHARE_ERROR = 104;
+#define INVALID_SHARE_ERROR 104
 
-constexpr static const uint16_t ZERO_PARAMETER_ERROR = 201;
+#define ZERO_PARAMETER_ERROR 201
 
-constexpr static const uint16_t INVALID_THRESHOLD_ERROR = 202;
+#define INVALID_THRESHOLD_ERROR 202
 
-constexpr static const uint16_t INVALID_NAME_ERROR = 203;
+#define INVALID_NAME_ERROR 203
 
-constexpr static const uint16_t UNKNOWN_LANGUAGE_ERROR = 204;
+#define UNKNOWN_LANGUAGE_ERROR 204
 
-constexpr static const uint16_t INVALID_SEED_ERROR = 205;
+#define INVALID_SEED_ERROR 205
 
-constexpr static const uint16_t INVALID_AMOUNT_OF_COMMITMENTS_ERROR = 206;
+#define INVALID_AMOUNT_OF_COMMITMENTS_ERROR 206
 
-constexpr static const uint16_t INVALID_COMMITMENTS_ERROR = 207;
+#define INVALID_COMMITMENTS_ERROR 207
 
-constexpr static const uint16_t INVALID_AMOUNT_OF_SHARES_ERROR = 208;
+#define INVALID_AMOUNT_OF_SHARES_ERROR 208
 
-constexpr static const uint16_t INVALID_OUTPUT_ERROR = 301;
+#define INVALID_OUTPUT_ERROR 301
 
-constexpr static const uint16_t INVALID_ADDRESS_ERROR = 302;
+#define INVALID_ADDRESS_ERROR 302
 
-constexpr static const uint16_t INVALID_NETWORK_ERROR = 303;
+#define INVALID_NETWORK_ERROR 303
 
-constexpr static const uint16_t NO_INPUTS_ERROR = 304;
+#define NO_INPUTS_ERROR 304
 
-constexpr static const uint16_t NO_OUTPUTS_ERROR = 305;
+#define NO_OUTPUTS_ERROR 305
 
-constexpr static const uint16_t DUST_ERROR = 306;
+#define DUST_ERROR 306
 
-constexpr static const uint16_t NOT_ENOUGH_FUNDS_ERROR = 307;
+#define NOT_ENOUGH_FUNDS_ERROR 307
 
-constexpr static const uint16_t TOO_LARGE_TRANSACTION_ERROR = 308;
+#define TOO_LARGE_TRANSACTION_ERROR 308
 
-constexpr static const uint16_t WRONG_KEYS_ERROR = 309;
+#define WRONG_KEYS_ERROR 309
 
-constexpr static const uint16_t INVALID_PREPROCESS_ERROR = 310;
+#define INVALID_PREPROCESS_ERROR 310
 
-template<typename T = void>
-struct Box;
+typedef struct KeyMachineWrapper KeyMachineWrapper;
 
-struct MultisigConfig;
+typedef struct MultisigConfig MultisigConfig;
 
-struct OwnedPortableOutput;
+typedef struct SecretShareMachineWrapper SecretShareMachineWrapper;
 
-template<typename T = void, typename E = void>
-struct Result;
+typedef struct String String;
 
-struct SignConfig;
+typedef struct ThresholdKeysWrapper ThresholdKeysWrapper;
 
-struct String;
+typedef struct Vec_u8 Vec_u8;
 
-template<typename T = void>
-struct Vec;
-
-struct OwnedString {
-  String *str_box;
+typedef struct OwnedString {
+  struct String *str_box;
   const uint8_t *ptr;
   uintptr_t len;
-};
+} OwnedString;
 
-struct StringView {
+typedef struct StringView {
   const uint8_t *ptr;
   uintptr_t len;
-};
+} StringView;
 
-struct MultisigConfigWithName {
-  MultisigConfig config;
-  String my_name;
-};
+typedef struct MultisigConfigWithName {
+  struct MultisigConfig config;
+  struct String my_name;
+} MultisigConfigWithName;
 
-extern "C" {
+typedef struct MultisigConfigRes {
+  struct MultisigConfig *config;
+  struct OwnedString encoded;
+} MultisigConfigRes;
 
-void free(OwnedString self);
+typedef struct CResult_MultisigConfigRes {
+  struct MultisigConfigRes *value;
+  uint16_t err;
+} CResult_MultisigConfigRes;
 
-StringView multisig_name(const MultisigConfig *self);
+typedef struct CResult_____MultisigConfig {
+  struct MultisigConfig **value;
+  uint16_t err;
+} CResult_____MultisigConfig;
 
-uint16_t threshold(const MultisigConfig *self);
+typedef struct StartKeyGenRes {
+  struct OwnedString seed;
+  struct MultisigConfigWithName *config;
+  struct SecretShareMachineWrapper *machine;
+  struct OwnedString commitments;
+} StartKeyGenRes;
 
-uintptr_t participants(const MultisigConfig *self);
+typedef struct CResult_StartKeyGenRes {
+  struct StartKeyGenRes *value;
+  uint16_t err;
+} CResult_StartKeyGenRes;
 
-StringView participant(const MultisigConfig *self, uintptr_t i);
+typedef struct SecretSharesRes {
+  struct KeyMachineWrapper *machine;
+  struct Vec_u8 *commitments;
+  struct OwnedString shares;
+} SecretSharesRes;
 
-const uint8_t *salt(const MultisigConfig *self);
+typedef struct CResult_SecretSharesRes {
+  struct SecretSharesRes *value;
+  uint16_t err;
+} CResult_SecretSharesRes;
 
-const MultisigConfig *config(const MultisigConfigWithName *self);
+typedef struct KeyGenRes {
+  uint8_t id[32];
+  struct ThresholdKeysWrapper *keys;
+  struct OwnedString recovery;
+} KeyGenRes;
 
-StringView my_name(const MultisigConfigWithName *self);
+typedef struct CResult_KeyGenRes {
+  struct KeyGenRes *value;
+  uint16_t err;
+} CResult_KeyGenRes;
 
-Result<Box<MultisigConfig>, uint16_t> decode_multisig_config(StringView config);
+void free(struct OwnedString self);
 
-const uint8_t *hash(const OwnedPortableOutput *self);
+struct StringView multisig_name(const struct MultisigConfig *self);
 
-uint32_t vout(const OwnedPortableOutput *self);
+uint16_t threshold(const struct MultisigConfig *self);
 
-uint64_t value(const OwnedPortableOutput *self);
+uintptr_t participants(const struct MultisigConfig *self);
 
-const uint8_t *script_pubkey(const OwnedPortableOutput *self);
+struct StringView participant(const struct MultisigConfig *self, uintptr_t i);
 
-uintptr_t inputs(const SignConfig *self);
+const uint8_t *salt(const struct MultisigConfig *self);
 
-const Box<OwnedPortableOutput> *input(const SignConfig *self, uintptr_t i);
+const struct MultisigConfig *config(const struct MultisigConfigWithName *self);
 
-StringView change(const SignConfig *self);
+struct StringView my_name(const struct MultisigConfigWithName *self);
 
-uint64_t fee_per_weight(const SignConfig *self);
+struct CResult_MultisigConfigRes new_multisig_config(const uint8_t *multisig_name,
+                                                     uintptr_t multisig_name_len,
+                                                     uint16_t threshold,
+                                                     const struct StringView *participants,
+                                                     uint16_t participants_len);
 
-Result<SignConfig, uint16_t> decode_sign_config(Network network, StringView encoded);
+struct CResult_____MultisigConfig decode_multisig_config(struct StringView config);
 
-Result<Vec<uint8_t>, uint16_t> complete_sign(Box<TransactionSignatureMachine> machine,
-                                             const StringView *shares,
-                                             uintptr_t shares_len);
+struct CResult_StartKeyGenRes start_key_gen(struct MultisigConfig *config,
+                                            struct StringView my_name,
+                                            uint16_t language);
 
-} // extern "C"
+struct CResult_SecretSharesRes get_secret_shares(struct MultisigConfigWithName *config,
+                                                 uint16_t language,
+                                                 struct StringView seed,
+                                                 struct SecretShareMachineWrapper *machine,
+                                                 const struct StringView *commitments,
+                                                 uintptr_t commitments_len);
+
+struct CResult_KeyGenRes complete_key_gen(struct MultisigConfigWithName *config,
+                                          struct SecretSharesRes machine_and_commitments,
+                                          const struct StringView *shares,
+                                          uintptr_t shares_len);
