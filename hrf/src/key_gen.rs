@@ -393,11 +393,11 @@ fn get_secret_shares_rust(
   // TODO: Display commitments to be sent to everyone
 }
 
-struct ThresholdKeysWrapper(ThresholdKeys<Secp256k1>);
+pub struct ThresholdKeysWrapper(ThresholdKeys<Secp256k1>);
 
 #[repr(C)]
 pub struct KeyGenRes {
-  id: [u8; 32],
+  multisig_id: [u8; 32],
   keys: Box<ThresholdKeysWrapper>,
   recovery: OwnedString,
 }
@@ -479,11 +479,26 @@ unsafe fn complete_key_gen_rust(
   let id = id.challenge(b"id");
 
   Ok(KeyGenRes {
-    id: id.as_slice().try_into().unwrap(),
+    multisig_id: id.as_slice().try_into().unwrap(),
     keys: Box::new(ThresholdKeysWrapper(keys.into())),
     recovery: OwnedString::new(Base64::encode_string(&recovery)),
   })
 
   // TODO: Have everyone confirm they have the same 32-byte ID
   // TODO: Give everyone the option to save the recovery string
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn serialize_keys(keys: Box<ThresholdKeysWrapper>) -> OwnedString {
+  OwnedString::new(hex::encode(&keys.0.serialize()))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn deserialize_keys(keys: StringView) -> CResult<ThresholdKeysWrapper> {
+  let Some(string) = keys.to_string() else { return CResult::new(Err(INVALID_ENCODING_ERROR)) };
+  let Ok(bytes) = hex::decode(string) else { return CResult::new(Err(INVALID_ENCODING_ERROR)) };
+  let Ok(keys) = ThresholdCore::<Secp256k1>::read(&mut bytes.as_slice()) else {
+    return CResult::new(Err(UNKNOWN_ERROR));
+  };
+  CResult::new(Ok(ThresholdKeysWrapper(keys.into())))
 }

@@ -130,7 +130,7 @@ typedef struct CResult_SecretSharesRes {
 } CResult_SecretSharesRes;
 
 typedef struct KeyGenRes {
-  uint8_t id[32];
+  uint8_t multisig_id[32];
   struct ThresholdKeysWrapper *keys;
   struct OwnedString recovery;
 } KeyGenRes;
@@ -139,6 +139,11 @@ typedef struct CResult_KeyGenRes {
   struct KeyGenRes *value;
   uint16_t err;
 } CResult_KeyGenRes;
+
+typedef struct CResult_ThresholdKeysWrapper {
+  struct ThresholdKeysWrapper *value;
+  uint16_t err;
+} CResult_ThresholdKeysWrapper;
 
 void free(struct OwnedString self);
 
@@ -179,3 +184,7 @@ struct CResult_KeyGenRes complete_key_gen(struct MultisigConfigWithName *config,
                                           struct SecretSharesRes machine_and_commitments,
                                           const struct StringView *shares,
                                           uintptr_t shares_len);
+
+struct OwnedString serialize_keys(struct ThresholdKeysWrapper *keys);
+
+struct CResult_ThresholdKeysWrapper deserialize_keys(struct StringView keys);
