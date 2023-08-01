@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, collections::HashMap};
 
 use rand_core::OsRng;
 
@@ -8,6 +8,7 @@ use frost::{*, sign::*};
 
 use bitcoin_serai::{
   bitcoin::{
+    consensus::Encodable,
     network::constants::Network,
     address::{NetworkUnchecked, Address},
   },
@@ -181,4 +182,42 @@ pub fn attempt_sign(
     .ok_or(WRONG_KEYS_ERROR)?
     .preprocess(&mut OsRng);
   Ok((machine, Base64::encode_string(&preprocesses.serialize())))
+}
+
+pub fn continue_sign(
+  machine: TransactionSignMachine,
+  preprocesses: &[&str],
+) -> Result<(TransactionSignatureMachine, String), u16> {
+  let mut map = HashMap::new();
+  for (i, preprocess) in preprocesses.iter().enumerate() {
+    map.insert(
+      Participant::new(u16::try_from(i + 1).map_err(|_| INVALID_PARTICIPANT_ERROR)?).unwrap(),
+      machine
+        .read_preprocess(
+          &mut Base64::decode_vec(preprocess).map_err(|_| INVALID_ENCODING_ERROR)?.as_slice(),
+        )
+        .map_err(|_| INVALID_ENCODING_ERROR)?,
+    );
+  }
+  let (machine, share) = machine.sign(map, &[]).map_err(|_| INVALID_PREPROCESS_ERROR)?;
+  Ok((machine, Base64::encode_string(&share.serialize())))
+}
+
+pub fn complete_sign(
+  machine: TransactionSignatureMachine,
+  shares: &[&str],
+) -> Result<Vec<u8>, u16> {
+  let mut map = HashMap::new();
+  for (i, share) in shares.iter().enumerate() {
+    map.insert(
+      Participant::new(u16::try_from(i + 1).map_err(|_| INVALID_PARTICIPANT_ERROR)?).unwrap(),
+      machine
+        .read_share(&mut Base64::decode_vec(share).map_err(|_| INVALID_ENCODING_ERROR)?.as_slice())
+        .map_err(|_| INVALID_ENCODING_ERROR)?,
+    );
+  }
+  let tx = machine.complete(map).map_err(|_| INVALID_SHARE_ERROR)?;
+  let mut buf = Vec::with_capacity(1024);
+  tx.consensus_encode(&mut buf).unwrap();
+  Ok(buf)
 }
