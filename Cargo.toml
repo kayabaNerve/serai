@@ -22,6 +22,8 @@ members = [
 
   "coins/bitcoin",
 
+  "hrf",
+
   "tests/no-std",
 ]
 

@@ -277,7 +277,7 @@ mod lib {
       self.group_key
     }
 
-    pub(crate) fn verification_shares(&self) -> HashMap<Participant, C::G> {
+    pub fn verification_shares(&self) -> HashMap<Participant, C::G> {
       self.verification_shares.clone()
     }
 
