@@ -183,11 +183,11 @@ unsafe fn new_multisig_config_rust(
 }
 
 #[no_mangle]
-pub extern "C" fn decode_multisig_config(config: StringView) -> CResult<Box<MultisigConfig>> {
+pub extern "C" fn decode_multisig_config(config: StringView) -> CResult<MultisigConfig> {
   CResult::new(decode_multisig_config_rust(config))
 }
 
-fn decode_multisig_config_rust(config: StringView) -> Result<Box<MultisigConfig>, u16> {
+fn decode_multisig_config_rust(config: StringView) -> Result<MultisigConfig, u16> {
   let Ok(config) = Base64::decode_vec(&config.to_string().ok_or(INVALID_ENCODING_ERROR)?) else {
     Err(INVALID_ENCODING_ERROR)?
   };
@@ -200,7 +200,7 @@ fn decode_multisig_config_rust(config: StringView) -> Result<Box<MultisigConfig>
   };
   check_t_n(config.threshold, participants_len)?;
 
-  Ok(config.into())
+  Ok(config)
 }
 
 fn inner_key_gen(
@@ -287,7 +287,7 @@ struct KeyMachineWrapper(KeyMachine<Secp256k1>);
 #[repr(C)]
 pub struct SecretSharesRes {
   machine: Box<KeyMachineWrapper>,
-  commitments: Box<Vec<u8>>,
+  internal_commitments: Box<Vec<u8>>,
   shares: OwnedString,
 }
 
@@ -384,7 +384,7 @@ fn get_secret_shares_rust(
 
   Ok(SecretSharesRes {
     machine: Box::new(KeyMachineWrapper(machine)),
-    commitments: Box::new(bincode::serialize(&commitments).unwrap()),
+    internal_commitments: Box::new(bincode::serialize(&commitments).unwrap()),
     shares: OwnedString::new(Base64::encode_string(
       &bincode::serialize(&linearized_shares).unwrap(),
     )),
@@ -419,7 +419,7 @@ unsafe fn complete_key_gen_rust(
   shares_len: usize,
 ) -> Result<KeyGenRes, u16> {
   let params = config.params().unwrap();
-  let SecretSharesRes { machine, commitments, .. } = machine_and_commitments;
+  let SecretSharesRes { machine, internal_commitments: commitments, .. } = machine_and_commitments;
 
   if shares_len != config.config.participants.len() {
     Err(INVALID_AMOUNT_OF_SHARES_ERROR)?;

@@ -101,10 +101,10 @@ typedef struct CResult_MultisigConfigRes {
   uint16_t err;
 } CResult_MultisigConfigRes;
 
-typedef struct CResult_____MultisigConfig {
-  struct MultisigConfig **value;
+typedef struct CResult_MultisigConfig {
+  struct MultisigConfig *value;
   uint16_t err;
-} CResult_____MultisigConfig;
+} CResult_MultisigConfig;
 
 typedef struct StartKeyGenRes {
   struct OwnedString seed;
@@ -120,7 +120,7 @@ typedef struct CResult_StartKeyGenRes {
 
 typedef struct SecretSharesRes {
   struct KeyMachineWrapper *machine;
-  struct Vec_u8 *commitments;
+  struct Vec_u8 *internal_commitments;
   struct OwnedString shares;
 } SecretSharesRes;
 
@@ -162,7 +162,7 @@ struct CResult_MultisigConfigRes new_multisig_config(const uint8_t *multisig_nam
                                                      const struct StringView *participants,
                                                      uint16_t participants_len);
 
-struct CResult_____MultisigConfig decode_multisig_config(struct StringView config);
+struct CResult_MultisigConfig decode_multisig_config(struct StringView config);
 
 struct CResult_StartKeyGenRes start_key_gen(struct MultisigConfig *config,
                                             struct StringView my_name,
