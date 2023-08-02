@@ -36,22 +36,22 @@ impl MultisigConfig {
   }
 
   #[no_mangle]
-  pub extern "C" fn threshold(&self) -> u16 {
+  pub extern "C" fn multisig_threshold(&self) -> u16 {
     self.threshold
   }
 
   #[no_mangle]
-  pub extern "C" fn participants(&self) -> usize {
+  pub extern "C" fn multisig_participants(&self) -> usize {
     self.participants.len()
   }
 
   #[no_mangle]
-  pub extern "C" fn participant(&self, i: usize) -> StringView {
+  pub extern "C" fn multisig_participant(&self, i: usize) -> StringView {
     StringView::new(&self.participants[i])
   }
 
   #[no_mangle]
-  pub extern "C" fn salt(&self) -> *const u8 {
+  pub extern "C" fn multisig_salt(&self) -> *const u8 {
     self.salt.as_ptr()
   }
 
@@ -70,25 +70,25 @@ impl MultisigConfig {
 #[repr(C)]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct MultisigConfigWithName {
-  config: MultisigConfig,
-  my_name: String,
+  config: Box<MultisigConfig>,
+  my_name: Box<String>,
 }
 
 impl MultisigConfigWithName {
   #[no_mangle]
-  pub extern "C" fn config(&self) -> &MultisigConfig {
+  pub extern "C" fn multisig_config(&self) -> &MultisigConfig {
     &self.config
   }
 
   #[no_mangle]
-  pub extern "C" fn my_name(&self) -> StringView {
+  pub extern "C" fn multisig_my_name(&self) -> StringView {
     StringView::new(&self.my_name)
   }
 
   fn params(&self) -> Result<ThresholdParams, u16> {
     let mut my_index = 0;
     while (my_index < self.config.participants.len()) &&
-      (self.config.participants[my_index] != self.my_name)
+      (self.config.participants[my_index] != *self.my_name)
     {
       my_index += 1;
     }
@@ -204,12 +204,14 @@ fn decode_multisig_config_rust(config: StringView) -> Result<MultisigConfig, u16
 }
 
 fn inner_key_gen(
-  config: MultisigConfig,
+  config: Box<MultisigConfig>,
   my_name: StringView,
   seed: &[u8; 16],
 ) -> Result<(MultisigConfigWithName, SecretShareMachine<Secp256k1>, OwnedString), u16> {
-  let config =
-    MultisigConfigWithName { config, my_name: my_name.to_string().ok_or(INVALID_NAME_ERROR)? };
+  let config = MultisigConfigWithName {
+    config,
+    my_name: my_name.to_string().ok_or(INVALID_NAME_ERROR)?.into(),
+  };
 
   let context = config.config.context();
 
@@ -252,7 +254,7 @@ fn start_key_gen_rust(
   let mut seed = Zeroizing::new([0; 16]);
   OsRng.fill_bytes(seed.as_mut());
 
-  let (config, machine, commitments) = inner_key_gen(*config, my_name, &seed)?;
+  let (config, machine, commitments) = inner_key_gen(config, my_name, &seed)?;
 
   // TODO: Screen where the seed is converted to a Bitcoin seed and displayed for backup
   // TODO: Screen where the commitments are displayed for transmision to everyone else

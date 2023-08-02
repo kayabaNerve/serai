@@ -57,23 +57,23 @@ pub struct OwnedPortableOutput {
 
 impl OwnedPortableOutput {
   #[no_mangle]
-  pub extern "C" fn hash(&self) -> *const u8 {
+  pub extern "C" fn output_hash(&self) -> *const u8 {
     self.hash.as_ptr()
   }
   #[no_mangle]
-  pub extern "C" fn vout(&self) -> u32 {
+  pub extern "C" fn output_vout(&self) -> u32 {
     self.vout
   }
   #[no_mangle]
-  pub extern "C" fn value(&self) -> u64 {
+  pub extern "C" fn output_value(&self) -> u64 {
     self.value
   }
   #[no_mangle]
-  pub extern "C" fn script_pubkey_len(&self) -> usize {
+  pub extern "C" fn output_script_pubkey_len(&self) -> usize {
     self.script_pubkey.len()
   }
   #[no_mangle]
-  pub extern "C" fn script_pubkey(&self) -> *const u8 {
+  pub extern "C" fn output_script_pubkey(&self) -> *const u8 {
     self.script_pubkey.as_ptr()
   }
 }
@@ -105,32 +105,32 @@ pub struct SignConfig {
 
 impl SignConfig {
   #[no_mangle]
-  pub extern "C" fn inputs(&self) -> usize {
+  pub extern "C" fn sign_inputs(&self) -> usize {
     self.inputs.len()
   }
   #[allow(clippy::borrowed_box)]
   #[no_mangle]
-  pub extern "C" fn input(&self, i: usize) -> &Box<OwnedPortableOutput> {
+  pub extern "C" fn sign_input(&self, i: usize) -> &Box<OwnedPortableOutput> {
     &self.inputs[i]
   }
   #[no_mangle]
-  pub extern "C" fn payments(&self) -> usize {
+  pub extern "C" fn sign_payments(&self) -> usize {
     self.payments.len()
   }
   #[no_mangle]
-  pub extern "C" fn payment_address(&self, i: usize) -> StringView {
+  pub extern "C" fn sign_payment_address(&self, i: usize) -> StringView {
     StringView::new(&self.payments[i].0)
   }
   #[no_mangle]
-  pub extern "C" fn payment_amount(&self, i: usize) -> u64 {
+  pub extern "C" fn sign_payment_amount(&self, i: usize) -> u64 {
     self.payments[i].1
   }
   #[no_mangle]
-  pub extern "C" fn change(&self) -> StringView {
+  pub extern "C" fn sign_change(&self) -> StringView {
     StringView::new(&self.change)
   }
   #[no_mangle]
-  pub extern "C" fn fee_per_weight(&self) -> u64 {
+  pub extern "C" fn sign_fee_per_weight(&self) -> u64 {
     self.fee_per_weight
   }
 }

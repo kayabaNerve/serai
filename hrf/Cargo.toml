@@ -7,6 +7,9 @@ repository = "https://github.com/serai-dex/serai/tree/develop/coins/hrf"
 authors = ["Luke Parker <lukeparker5132@gmail.com>"]
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
 [dependencies]
 zeroize = "^1.5"
 

@@ -69,7 +69,7 @@ impl OwnedString {
     OwnedString { ptr: str.as_ptr(), len: str.len(), str_box: Box::into_raw(Box::new(str)) }
   }
   #[no_mangle]
-  pub extern "C" fn free(self) {
+  pub extern "C" fn free_owned_string(self) {
     drop(unsafe { Box::from_raw(self.str_box) });
   }
 }

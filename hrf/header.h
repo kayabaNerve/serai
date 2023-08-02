@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -79,7 +81,7 @@ typedef struct SecretShareMachineWrapper SecretShareMachineWrapper;
 
 typedef struct SignConfig SignConfig;
 
-typedef struct String String;
+typedef struct RustString RustString;
 
 typedef struct ThresholdKeysWrapper ThresholdKeysWrapper;
 
@@ -90,7 +92,7 @@ typedef struct TransactionSignatureMachineWrapper TransactionSignatureMachineWra
 typedef struct Vec_u8 Vec_u8;
 
 typedef struct OwnedString {
-  struct String *str_box;
+  struct RustString *str_box;
   const uint8_t *ptr;
   uintptr_t len;
 } OwnedString;
@@ -101,8 +103,8 @@ typedef struct StringView {
 } StringView;
 
 typedef struct MultisigConfigWithName {
-  struct MultisigConfig config;
-  struct String my_name;
+  struct MultisigConfig *config;
+  struct RustString *my_name;
 } MultisigConfigWithName;
 
 typedef struct MultisigConfigRes {
@@ -207,21 +209,25 @@ typedef struct CResult_OwnedString {
   uint16_t err;
 } CResult_OwnedString;
 
-void free(struct OwnedString self);
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
+void free_owned_string(struct OwnedString self);
 
 struct StringView multisig_name(const struct MultisigConfig *self);
 
-uint16_t threshold(const struct MultisigConfig *self);
+uint16_t multisig_threshold(const struct MultisigConfig *self);
 
-uintptr_t participants(const struct MultisigConfig *self);
+uintptr_t multisig_participants(const struct MultisigConfig *self);
 
-struct StringView participant(const struct MultisigConfig *self, uintptr_t i);
+struct StringView multisig_participant(const struct MultisigConfig *self, uintptr_t i);
 
-const uint8_t *salt(const struct MultisigConfig *self);
+const uint8_t *multisig_salt(const struct MultisigConfig *self);
 
-const struct MultisigConfig *config(const struct MultisigConfigWithName *self);
+const struct MultisigConfig *multisig_config(const struct MultisigConfigWithName *self);
 
-struct StringView my_name(const struct MultisigConfigWithName *self);
+struct StringView multisig_my_name(const struct MultisigConfigWithName *self);
 
 struct CResult_MultisigConfigRes new_multisig_config(const uint8_t *multisig_name,
                                                      uintptr_t multisig_name_len,
@@ -251,29 +257,29 @@ struct OwnedString serialize_keys(struct ThresholdKeysWrapper *keys);
 
 struct CResult_ThresholdKeysWrapper deserialize_keys(struct StringView keys);
 
-const uint8_t *hash(const struct OwnedPortableOutput *self);
+const uint8_t *output_hash(const struct OwnedPortableOutput *self);
 
-uint32_t vout(const struct OwnedPortableOutput *self);
+uint32_t output_vout(const struct OwnedPortableOutput *self);
 
-uint64_t value(const struct OwnedPortableOutput *self);
+uint64_t output_value(const struct OwnedPortableOutput *self);
 
-uintptr_t script_pubkey_len(const struct OwnedPortableOutput *self);
+uintptr_t output_script_pubkey_len(const struct OwnedPortableOutput *self);
 
-const uint8_t *script_pubkey(const struct OwnedPortableOutput *self);
+const uint8_t *output_script_pubkey(const struct OwnedPortableOutput *self);
 
-uintptr_t inputs(const struct SignConfig *self);
+uintptr_t sign_inputs(const struct SignConfig *self);
 
-struct OwnedPortableOutput *const *input(const struct SignConfig *self, uintptr_t i);
+struct OwnedPortableOutput *const *sign_input(const struct SignConfig *self, uintptr_t i);
 
-uintptr_t payments(const struct SignConfig *self);
+uintptr_t sign_payments(const struct SignConfig *self);
 
-struct StringView payment_address(const struct SignConfig *self, uintptr_t i);
+struct StringView sign_payment_address(const struct SignConfig *self, uintptr_t i);
 
-uint64_t payment_amount(const struct SignConfig *self, uintptr_t i);
+uint64_t sign_payment_amount(const struct SignConfig *self, uintptr_t i);
 
-struct StringView change(const struct SignConfig *self);
+struct StringView sign_change(const struct SignConfig *self);
 
-uint64_t fee_per_weight(const struct SignConfig *self);
+uint64_t sign_fee_per_weight(const struct SignConfig *self);
 
 struct CResult_SignConfigRes new_sign_config(enum Network network,
                                              const struct PortableOutput *outputs,
@@ -296,3 +302,7 @@ struct CResult_ContinueSignRes continue_sign(struct TransactionSignMachineWrappe
 struct CResult_OwnedString complete_sign(struct TransactionSignatureMachineWrapper *machine,
                                          const struct StringView *shares,
                                          uintptr_t shares_len);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif // __cplusplus
