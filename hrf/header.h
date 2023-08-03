@@ -241,14 +241,14 @@ struct CResult_StartKeyGenRes start_key_gen(struct MultisigConfig *config,
                                             struct StringView my_name,
                                             uint16_t language);
 
-struct CResult_SecretSharesRes get_secret_shares(struct MultisigConfigWithName *config,
+struct CResult_SecretSharesRes get_secret_shares(const struct MultisigConfigWithName *config,
                                                  uint16_t language,
                                                  struct StringView seed,
                                                  struct SecretShareMachineWrapper *machine,
                                                  const struct StringView *commitments,
                                                  uintptr_t commitments_len);
 
-struct CResult_KeyGenRes complete_key_gen(struct MultisigConfigWithName *config,
+struct CResult_KeyGenRes complete_key_gen(const struct MultisigConfigWithName *config,
                                           struct SecretSharesRes machine_and_commitments,
                                           const struct StringView *shares,
                                           uintptr_t shares_len);

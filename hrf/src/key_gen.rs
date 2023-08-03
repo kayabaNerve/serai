@@ -295,7 +295,7 @@ pub struct SecretSharesRes {
 
 #[no_mangle]
 pub unsafe extern "C" fn get_secret_shares(
-  config: Box<MultisigConfigWithName>,
+  config: &MultisigConfigWithName,
   language: u16,
   seed: StringView,
   machine: Box<SecretShareMachineWrapper>,
@@ -313,7 +313,7 @@ pub unsafe extern "C" fn get_secret_shares(
 }
 
 fn get_secret_shares_rust(
-  config: Box<MultisigConfigWithName>,
+  config: &MultisigConfigWithName,
   language: u16,
   seed: StringView,
   machine: Box<SecretShareMachineWrapper>,
@@ -401,7 +401,7 @@ pub struct KeyGenRes {
 
 #[no_mangle]
 pub unsafe extern "C" fn complete_key_gen(
-  config: Box<MultisigConfigWithName>,
+  config: &MultisigConfigWithName,
   machine_and_commitments: SecretSharesRes,
   shares: *const StringView,
   shares_len: usize,
@@ -410,7 +410,7 @@ pub unsafe extern "C" fn complete_key_gen(
 }
 
 unsafe fn complete_key_gen_rust(
-  config: Box<MultisigConfigWithName>,
+  config: &MultisigConfigWithName,
   machine_and_commitments: SecretSharesRes,
   shares: *const StringView,
   shares_len: usize,
