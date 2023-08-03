@@ -368,28 +368,25 @@ fn get_secret_shares_rust(
   }
   let commitments = new_commitments;
 
-  let Ok((machine, shares)) =
+  commitments_map.remove(&params.i());
+  let Ok((machine, mut shares)) =
     machine.0.generate_secret_shares(&mut secret_shares_rng, commitments_map)
   else {
     Err(INVALID_COMMITMENTS_ERROR)?
   };
 
-  let mut serialized_shares = shares
-    .into_iter()
-    .map(|(i, shares)| (u16::from(i), shares.serialize()))
-    .collect::<HashMap<_, _>>();
-
   let mut linearized_shares = vec![];
-  for i in 1 ..= params.n() {
-    linearized_shares.push(serialized_shares.remove(&i).unwrap());
+  for l in 1 ..= params.n() {
+    let l = Participant::new(l).unwrap();
+    if l != params.i() {
+      shares.remove(&l).unwrap().write(&mut linearized_shares).unwrap();
+    }
   }
 
   Ok(SecretSharesRes {
     machine: Box::new(KeyMachineWrapper(machine)),
     internal_commitments: Box::new(bincode::serialize(&commitments).unwrap()),
-    shares: OwnedString::new(Base64::encode_string(
-      &bincode::serialize(&linearized_shares).unwrap(),
-    )),
+    shares: OwnedString::new(Base64::encode_string(&linearized_shares)),
   })
 
   // TODO: Display commitments to be sent to everyone
@@ -441,6 +438,9 @@ unsafe fn complete_key_gen_rust(
     let mut shares_from_i = HashMap::new();
     for l in 0 .. config.config.participants.len() {
       let l = Participant::new(u16::try_from(l).unwrap() + 1).unwrap();
+      if l == i {
+        continue;
+      }
       let Ok(message) =
         EncryptedMessage::<Secp256k1, SecretShare<<Secp256k1 as Ciphersuite>::F>>::read(
           reader, params,
@@ -455,6 +455,7 @@ unsafe fn complete_key_gen_rust(
     new_shares.push(linearized_shares);
   }
   let shares = new_shares;
+  shares_map.remove(&params.i());
 
   let Some(my_shares) = shares_map
     .into_iter()
