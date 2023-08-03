@@ -276,14 +276,14 @@ pub struct AttemptSignRes {
 #[no_mangle]
 pub extern "C" fn attempt_sign(
   keys: Box<ThresholdKeysWrapper>,
-  config: &Box<SignConfig>,
+  config: &SignConfig,
 ) -> CResult<AttemptSignRes> {
   CResult::new(attempt_sign_rust(keys, config))
 }
 
 fn attempt_sign_rust(
   keys: Box<ThresholdKeysWrapper>,
-  config: &Box<SignConfig>,
+  config: &SignConfig,
 ) -> Result<AttemptSignRes, u16> {
   let (machine, preprocesses) = sign_config_to_tx(config.network, config)
     .expect("created a SignConfig which couldn't create a TX")

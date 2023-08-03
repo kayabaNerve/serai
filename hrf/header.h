@@ -293,7 +293,7 @@ struct CResult_SignConfigRes new_sign_config(enum Network network,
 struct CResult_SignConfig decode_sign_config(enum Network network, struct StringView encoded);
 
 struct CResult_AttemptSignRes attempt_sign(struct ThresholdKeysWrapper *keys,
-                                           struct SignConfig *const *config);
+                                           const struct SignConfig *config);
 
 struct CResult_ContinueSignRes continue_sign(struct TransactionSignMachineWrapper *machine,
                                              const struct StringView *preprocesses,

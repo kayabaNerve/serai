@@ -480,7 +480,7 @@ unsafe fn complete_key_gen_rust(
   let id = id.challenge(b"id");
 
   Ok(KeyGenRes {
-    multisig_id: id.as_slice().try_into().unwrap(),
+    multisig_id: id.as_slice()[.. 32].try_into().unwrap(),
     keys: Box::new(ThresholdKeysWrapper(keys.into())),
     recovery: OwnedString::new(Base64::encode_string(&recovery)),
   })
