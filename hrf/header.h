@@ -253,9 +253,13 @@ struct CResult_KeyGenRes complete_key_gen(const struct MultisigConfigWithName *c
                                           const struct StringView *shares,
                                           uintptr_t shares_len);
 
-struct OwnedString serialize_keys(struct ThresholdKeysWrapper *keys);
+struct OwnedString serialize_keys(const struct ThresholdKeysWrapper *keys);
 
 struct CResult_ThresholdKeysWrapper deserialize_keys(struct StringView keys);
+
+struct OwnedString address_for_keys(enum Network network, const struct ThresholdKeysWrapper *keys);
+
+struct OwnedString script_pub_key_for_keys(const struct ThresholdKeysWrapper *keys);
 
 const uint8_t *output_hash(const struct OwnedPortableOutput *self);
 
@@ -292,7 +296,7 @@ struct CResult_SignConfigRes new_sign_config(enum Network network,
 
 struct CResult_SignConfig decode_sign_config(enum Network network, struct StringView encoded);
 
-struct CResult_AttemptSignRes attempt_sign(struct ThresholdKeysWrapper *keys,
+struct CResult_AttemptSignRes attempt_sign(const struct ThresholdKeysWrapper *keys,
                                            const struct SignConfig *config);
 
 struct CResult_ContinueSignRes continue_sign(struct TransactionSignMachineWrapper *machine,

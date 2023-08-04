@@ -490,7 +490,7 @@ unsafe fn complete_key_gen_rust(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn serialize_keys(keys: Box<ThresholdKeysWrapper>) -> OwnedString {
+pub unsafe extern "C" fn serialize_keys(keys: &ThresholdKeysWrapper) -> OwnedString {
   OwnedString::new(hex::encode(&keys.0.serialize()))
 }
 

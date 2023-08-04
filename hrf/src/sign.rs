@@ -37,6 +37,27 @@ impl Network {
   }
 }
 
+#[no_mangle]
+pub unsafe extern "C" fn address_for_keys(
+  network: Network,
+  keys: &ThresholdKeysWrapper,
+) -> OwnedString {
+  OwnedString::new(
+    address(network.to_bitcoin(), tweak_keys(&keys.0).group_key())
+      .expect("tweaked keys didn't have an address")
+      .to_string(),
+  )
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn script_pub_key_for_keys(keys: &ThresholdKeysWrapper) -> OwnedString {
+  OwnedString::new(hex::encode(
+    address(BNetwork::Bitcoin, tweak_keys(&keys.0).group_key())
+      .expect("tweaked keys didn't have an address")
+      .script_pubkey(),
+  ))
+}
+
 #[repr(C)]
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PortableOutput {
@@ -275,19 +296,19 @@ pub struct AttemptSignRes {
 
 #[no_mangle]
 pub extern "C" fn attempt_sign(
-  keys: Box<ThresholdKeysWrapper>,
+  keys: &ThresholdKeysWrapper,
   config: &SignConfig,
 ) -> CResult<AttemptSignRes> {
   CResult::new(attempt_sign_rust(keys, config))
 }
 
 fn attempt_sign_rust(
-  keys: Box<ThresholdKeysWrapper>,
+  keys: &ThresholdKeysWrapper,
   config: &SignConfig,
 ) -> Result<AttemptSignRes, u16> {
   let (machine, preprocesses) = sign_config_to_tx(config.network, config)
     .expect("created a SignConfig which couldn't create a TX")
-    .multisig(keys.0, RecommendedTranscript::new(b"HRF Sign Transaction"))
+    .multisig(keys.0.clone(), RecommendedTranscript::new(b"HRF Sign Transaction"))
     .ok_or(WRONG_KEYS_ERROR)?
     .preprocess(&mut OsRng);
   Ok(AttemptSignRes {
