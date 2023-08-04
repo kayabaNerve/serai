@@ -16,32 +16,32 @@ pub const LANGUAGE_KOREAN: u16 = 7;
 pub const LANGUAGE_SPANISH: u16 = 8;
 
 // Common errors
-pub const UNKNOWN_ERROR: u16 = 101;
-pub const INVALID_ENCODING_ERROR: u16 = 102;
-pub const INVALID_PARTICIPANT_ERROR: u16 = 103;
-pub const INVALID_SHARE_ERROR: u16 = 104;
+pub const UNKNOWN_ERROR: u16 = 21;
+pub const INVALID_ENCODING_ERROR: u16 = 22;
+pub const INVALID_PARTICIPANT_ERROR: u16 = 23;
+pub const INVALID_SHARE_ERROR: u16 = 24;
 
 // Key gen errors
-pub const ZERO_PARAMETER_ERROR: u16 = 201;
-pub const INVALID_THRESHOLD_ERROR: u16 = 202;
-pub const INVALID_NAME_ERROR: u16 = 203;
-pub const UNKNOWN_LANGUAGE_ERROR: u16 = 204;
-pub const INVALID_SEED_ERROR: u16 = 205;
-pub const INVALID_AMOUNT_OF_COMMITMENTS_ERROR: u16 = 206;
-pub const INVALID_COMMITMENTS_ERROR: u16 = 207;
-pub const INVALID_AMOUNT_OF_SHARES_ERROR: u16 = 208;
+pub const ZERO_PARAMETER_ERROR: u16 = 41;
+pub const INVALID_THRESHOLD_ERROR: u16 = 42;
+pub const INVALID_NAME_ERROR: u16 = 43;
+pub const UNKNOWN_LANGUAGE_ERROR: u16 = 44;
+pub const INVALID_SEED_ERROR: u16 = 45;
+pub const INVALID_AMOUNT_OF_COMMITMENTS_ERROR: u16 = 46;
+pub const INVALID_COMMITMENTS_ERROR: u16 = 47;
+pub const INVALID_AMOUNT_OF_SHARES_ERROR: u16 = 48;
 
 // Sign errors
-pub const INVALID_OUTPUT_ERROR: u16 = 301;
-pub const INVALID_ADDRESS_ERROR: u16 = 302;
-pub const INVALID_NETWORK_ERROR: u16 = 303;
-pub const NO_INPUTS_ERROR: u16 = 304;
-pub const NO_OUTPUTS_ERROR: u16 = 305;
-pub const DUST_ERROR: u16 = 306;
-pub const NOT_ENOUGH_FUNDS_ERROR: u16 = 307;
-pub const TOO_LARGE_TRANSACTION_ERROR: u16 = 308;
-pub const WRONG_KEYS_ERROR: u16 = 309;
-pub const INVALID_PREPROCESS_ERROR: u16 = 310;
+pub const INVALID_OUTPUT_ERROR: u16 = 61;
+pub const INVALID_ADDRESS_ERROR: u16 = 62;
+pub const INVALID_NETWORK_ERROR: u16 = 63;
+pub const NO_INPUTS_ERROR: u16 = 64;
+pub const NO_OUTPUTS_ERROR: u16 = 65;
+pub const DUST_ERROR: u16 = 66;
+pub const NOT_ENOUGH_FUNDS_ERROR: u16 = 67;
+pub const TOO_LARGE_TRANSACTION_ERROR: u16 = 68;
+pub const WRONG_KEYS_ERROR: u16 = 69;
+pub const INVALID_PREPROCESS_ERROR: u16 = 70;
 
 #[repr(C)]
 pub struct StringView {
