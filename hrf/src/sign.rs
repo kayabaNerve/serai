@@ -308,7 +308,7 @@ fn attempt_sign_rust(
 ) -> Result<AttemptSignRes, u16> {
   let (machine, preprocesses) = sign_config_to_tx(config.network, config)
     .expect("created a SignConfig which couldn't create a TX")
-    .multisig(keys.0.clone(), RecommendedTranscript::new(b"HRF Sign Transaction"))
+    .multisig(tweak_keys(&keys.0), RecommendedTranscript::new(b"HRF Sign Transaction"))
     .ok_or(WRONG_KEYS_ERROR)?
     .preprocess(&mut OsRng);
   Ok(AttemptSignRes {
