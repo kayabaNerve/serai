@@ -341,14 +341,16 @@ fn continue_sign_rust(
 
   let mut map = HashMap::new();
   for (i, preprocess) in preprocesses.iter().enumerate() {
+    let preprocess = preprocess.to_string().ok_or(INVALID_ENCODING_ERROR)?;
+    if preprocess.is_empty() {
+      continue;
+    }
     map.insert(
       Participant::new(u16::try_from(i + 1).map_err(|_| INVALID_PARTICIPANT_ERROR)?).unwrap(),
       machine
         .0
         .read_preprocess(
-          &mut Base64::decode_vec(&preprocess.to_string().ok_or(INVALID_ENCODING_ERROR)?)
-            .map_err(|_| INVALID_ENCODING_ERROR)?
-            .as_slice(),
+          &mut Base64::decode_vec(&preprocess).map_err(|_| INVALID_ENCODING_ERROR)?.as_slice(),
         )
         .map_err(|_| INVALID_ENCODING_ERROR)?,
     );
@@ -377,15 +379,15 @@ fn complete_sign_rust(
 ) -> Result<OwnedString, u16> {
   let mut map = HashMap::new();
   for (i, share) in shares.iter().enumerate() {
+    let share = share.to_string().ok_or(INVALID_ENCODING_ERROR)?;
+    if share.is_empty() {
+      continue;
+    }
     map.insert(
       Participant::new(u16::try_from(i + 1).map_err(|_| INVALID_PARTICIPANT_ERROR)?).unwrap(),
       machine
         .0
-        .read_share(
-          &mut Base64::decode_vec(&share.to_string().ok_or(INVALID_ENCODING_ERROR)?)
-            .map_err(|_| INVALID_ENCODING_ERROR)?
-            .as_slice(),
-        )
+        .read_share(&mut Base64::decode_vec(&share).map_err(|_| INVALID_ENCODING_ERROR)?.as_slice())
         .map_err(|_| INVALID_ENCODING_ERROR)?,
     );
   }
