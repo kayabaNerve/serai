@@ -50,11 +50,12 @@ pub unsafe extern "C" fn address_for_keys(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn script_pub_key_for_keys(keys: &ThresholdKeysWrapper) -> OwnedString {
+pub unsafe extern "C" fn script_pubkey_for_keys(keys: &ThresholdKeysWrapper) -> OwnedString {
   OwnedString::new(hex::encode(
     address(BNetwork::Bitcoin, tweak_keys(&keys.0).group_key())
-      .expect("tweaked keys didn't have an address")
-      .script_pubkey(),
+      .expect("tweaked keys didn't have an address for the script_pubkey")
+      .script_pubkey()
+      .into_bytes(),
   ))
 }
 

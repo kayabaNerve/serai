@@ -259,7 +259,7 @@ struct CResult_ThresholdKeysWrapper deserialize_keys(struct StringView keys);
 
 struct OwnedString address_for_keys(enum Network network, const struct ThresholdKeysWrapper *keys);
 
-struct OwnedString script_pub_key_for_keys(const struct ThresholdKeysWrapper *keys);
+struct OwnedString script_pubkey_for_keys(const struct ThresholdKeysWrapper *keys);
 
 const uint8_t *output_hash(const struct OwnedPortableOutput *self);
 
