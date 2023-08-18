@@ -76,14 +76,14 @@ impl OwnedString {
 
 #[repr(C)]
 pub struct CResult<T> {
-  value: Box<T>,
+  value: Option<Box<T>>,
   err: u16,
 }
 impl<T> CResult<T> {
   pub(crate) fn new(res: Result<T, u16>) -> Self {
     match res {
-      Ok(value) => CResult { value: value.into(), err: 0 },
-      Err(e) => CResult { value: unsafe { Box::from_raw(std::ptr::null_mut()) }, err: e },
+      Ok(value) => CResult { value: Some(value.into()), err: 0 },
+      Err(e) => CResult { value: None, err: e },
     }
   }
 }
