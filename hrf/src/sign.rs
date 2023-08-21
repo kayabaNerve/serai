@@ -132,7 +132,7 @@ impl SignConfig {
   }
   #[allow(clippy::borrowed_box)]
   #[no_mangle]
-  pub extern "C" fn sign_input(&self, i: usize) -> &Box<OwnedPortableOutput> {
+  pub extern "C" fn sign_input(&self, i: usize) -> &OwnedPortableOutput {
     &self.inputs[i]
   }
   #[no_mangle]
