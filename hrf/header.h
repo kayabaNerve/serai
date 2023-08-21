@@ -273,7 +273,7 @@ const uint8_t *output_script_pubkey(const struct OwnedPortableOutput *self);
 
 uintptr_t sign_inputs(const struct SignConfig *self);
 
-struct OwnedPortableOutput *const *sign_input(const struct SignConfig *self, uintptr_t i);
+const struct OwnedPortableOutput *sign_input(const struct SignConfig *self, uintptr_t i);
 
 uintptr_t sign_payments(const struct SignConfig *self);
 
