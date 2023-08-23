@@ -490,6 +490,22 @@ unsafe fn complete_key_gen_rust(
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn keys_threshold(keys: &ThresholdKeysWrapper) -> u16 {
+  keys.0.params().t()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn keys_participants(keys: &ThresholdKeysWrapper) -> u16 {
+  keys.0.params().n()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn keys_index(keys: &ThresholdKeysWrapper) -> u16 {
+  u16::from(keys.0.params().i()) - 1
+}
+
+
+#[no_mangle]
 pub unsafe extern "C" fn serialize_keys(keys: &ThresholdKeysWrapper) -> OwnedString {
   OwnedString::new(hex::encode(&keys.0.serialize()))
 }

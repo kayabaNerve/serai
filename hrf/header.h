@@ -253,6 +253,12 @@ struct CResult_KeyGenRes complete_key_gen(const struct MultisigConfigWithName *c
                                           const struct StringView *shares,
                                           uintptr_t shares_len);
 
+uint16_t keys_threshold(const struct ThresholdKeysWrapper *keys);
+
+uint16_t keys_participants(const struct ThresholdKeysWrapper *keys);
+
+uint16_t keys_index(const struct ThresholdKeysWrapper *keys);
+
 struct OwnedString serialize_keys(const struct ThresholdKeysWrapper *keys);
 
 struct CResult_ThresholdKeysWrapper deserialize_keys(struct StringView keys);
@@ -273,7 +279,7 @@ const uint8_t *output_script_pubkey(const struct OwnedPortableOutput *self);
 
 uintptr_t sign_inputs(const struct SignConfig *self);
 
-struct OwnedPortableOutput *const *sign_input(const struct SignConfig *self, uintptr_t i);
+const struct OwnedPortableOutput *sign_input(const struct SignConfig *self, uintptr_t i);
 
 uintptr_t sign_payments(const struct SignConfig *self);
 
