@@ -4,6 +4,7 @@
 
 pub mod key_gen;
 pub mod sign;
+pub mod resharing;
 
 // Seed languages
 pub const LANGUAGE_ENGLISH: u16 = 1;

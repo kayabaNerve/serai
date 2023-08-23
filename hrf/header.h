@@ -77,6 +77,8 @@ typedef struct MultisigConfig MultisigConfig;
 
 typedef struct OwnedPortableOutput OwnedPortableOutput;
 
+typedef struct ResharerConfig ResharerConfig;
+
 typedef struct SecretShareMachineWrapper SecretShareMachineWrapper;
 
 typedef struct SignConfig SignConfig;
@@ -209,6 +211,57 @@ typedef struct CResult_OwnedString {
   uint16_t err;
 } CResult_OwnedString;
 
+typedef struct ResharerConfigRes {
+  struct ResharerConfig *config;
+  struct OwnedString encoded;
+} ResharerConfigRes;
+
+typedef struct CResult_ResharerConfigRes {
+  struct ResharerConfigRes *value;
+  uint16_t err;
+} CResult_ResharerConfigRes;
+
+typedef struct CResult_____ResharerConfig {
+  struct ResharerConfig **value;
+  uint16_t err;
+} CResult_____ResharerConfig;
+
+typedef struct StartResharerRes {
+  struct OwnedString encoded;
+} StartResharerRes;
+
+typedef struct CResult_StartResharerRes {
+  struct StartResharerRes *value;
+  uint16_t err;
+} CResult_StartResharerRes;
+
+typedef struct StartResharedRes {
+  struct OwnedString encoded;
+} StartResharedRes;
+
+typedef struct CResult_StartResharedRes {
+  struct StartResharedRes *value;
+  uint16_t err;
+} CResult_StartResharedRes;
+
+typedef struct CompleteResharerRes {
+  struct OwnedString encoded;
+} CompleteResharerRes;
+
+typedef struct CResult_CompleteResharerRes {
+  struct CompleteResharerRes *value;
+  uint16_t err;
+} CResult_CompleteResharerRes;
+
+typedef struct CompleteResharedRes {
+  struct ThresholdKeysWrapper keys;
+} CompleteResharedRes;
+
+typedef struct CResult_CompleteResharedRes {
+  struct CompleteResharedRes *value;
+  uint16_t err;
+} CResult_CompleteResharedRes;
+
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
@@ -312,6 +365,37 @@ struct CResult_ContinueSignRes continue_sign(struct TransactionSignMachineWrappe
 struct CResult_OwnedString complete_sign(struct TransactionSignatureMachineWrapper *machine,
                                          const struct StringView *shares,
                                          uintptr_t shares_len);
+
+uint16_t resharer_new_threshold(const struct ResharerConfig *self);
+
+uintptr_t resharer_resharers(const struct ResharerConfig *self);
+
+uint16_t resharer_resharer(const struct ResharerConfig *self, uintptr_t i);
+
+uintptr_t resharer_new_participants(const struct ResharerConfig *self);
+
+struct StringView resharer_new_participant(const struct ResharerConfig *self, uintptr_t i);
+
+struct CResult_ResharerConfigRes new_resharer_config(uint16_t new_threshold,
+                                                     const uint16_t *resharers,
+                                                     uint16_t resharers_len,
+                                                     const struct StringView *new_participants,
+                                                     uint16_t new_participants_len);
+
+struct CResult_____ResharerConfig decode_resharer_config(struct StringView config);
+
+struct CResult_StartResharerRes start_resharer(const struct ThresholdKeysWrapper *keys,
+                                               struct ResharerConfig *config);
+
+struct CResult_StartResharedRes start_reshared(struct MultisigConfig *multisig_config,
+                                               struct ResharerConfig *reshared_config,
+                                               const struct StringView *resharer_starts);
+
+struct CResult_CompleteResharerRes complete_resharer(struct StartResharerRes machine,
+                                                     const struct StringView *encryption_keys_of_reshared_to);
+
+struct CResult_CompleteResharedRes complete_reshared(struct StartResharedRes machine,
+                                                     const struct StringView *resharer_completes);
 
 #ifdef __cplusplus
 } // extern "C"
