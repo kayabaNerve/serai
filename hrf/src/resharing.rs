@@ -81,7 +81,7 @@ fn check_t_n(threshold: u16, participants: u16) -> Result<(), u8> {
 
 #[repr(C)]
 pub struct ResharerConfigRes {
-  config: ResharerConfig,
+  config: Box<ResharerConfig>,
   encoded: OwnedString,
 }
 
@@ -149,7 +149,7 @@ unsafe fn new_resharer_config_rust(
   let config =
     ResharerConfig { new_threshold, resharers, new_participants: new_participants_res, salt };
   let encoded = OwnedString::new(Base64::encode_string(&bincode::serialize(&config).unwrap()));
-  Ok(ResharerConfigRes { config, encoded })
+  Ok(ResharerConfigRes { config: config.into(), encoded })
 }
 
 #[no_mangle]

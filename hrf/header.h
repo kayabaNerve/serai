@@ -226,7 +226,7 @@ typedef struct CResult_OwnedString {
 } CResult_OwnedString;
 
 typedef struct ResharerConfigRes {
-  struct ResharerConfig config;
+  struct ResharerConfig *config;
   struct OwnedString encoded;
 } ResharerConfigRes;
 
