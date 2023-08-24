@@ -85,7 +85,7 @@ impl MultisigConfigWithName {
     StringView::new(&self.my_name)
   }
 
-  fn params(&self) -> Result<ThresholdParams, u16> {
+  fn params(&self) -> Result<ThresholdParams, u8> {
     let mut my_index = 0;
     while (my_index < self.config.participants.len()) &&
       (self.config.participants[my_index] != *self.my_name)
@@ -108,7 +108,7 @@ impl MultisigConfigWithName {
   }
 }
 
-fn check_t_n(threshold: u16, participants: u16) -> Result<(), u16> {
+fn check_t_n(threshold: u16, participants: u16) -> Result<(), u8> {
   match ThresholdParams::new(threshold, participants, Participant::new(1).unwrap()) {
     Err(DkgError::ZeroParameter(..)) => Err(ZERO_PARAMETER_ERROR)?,
     Err(DkgError::InvalidThreshold(..)) => Err(INVALID_THRESHOLD_ERROR)?,
@@ -147,7 +147,7 @@ unsafe fn new_multisig_config_rust(
   threshold: u16,
   participants: *const StringView,
   participants_len: u16,
-) -> Result<MultisigConfigRes, u16> {
+) -> Result<MultisigConfigRes, u8> {
   check_t_n(threshold, participants_len)?;
 
   if multisig_name_len == 0 {
@@ -187,7 +187,7 @@ pub extern "C" fn decode_multisig_config(config: StringView) -> CResult<Multisig
   CResult::new(decode_multisig_config_rust(config))
 }
 
-fn decode_multisig_config_rust(config: StringView) -> Result<MultisigConfig, u16> {
+fn decode_multisig_config_rust(config: StringView) -> Result<MultisigConfig, u8> {
   let Ok(config) = Base64::decode_vec(&config.to_string().ok_or(INVALID_ENCODING_ERROR)?) else {
     Err(INVALID_ENCODING_ERROR)?
   };
@@ -207,7 +207,7 @@ fn inner_key_gen(
   config: Box<MultisigConfig>,
   my_name: StringView,
   seed: &[u8; 16],
-) -> Result<(MultisigConfigWithName, SecretShareMachine<Secp256k1>, OwnedString), u16> {
+) -> Result<(MultisigConfigWithName, SecretShareMachine<Secp256k1>, OwnedString), u8> {
   let config = MultisigConfigWithName {
     config,
     my_name: my_name.to_string().ok_or(INVALID_NAME_ERROR)?.into(),
@@ -240,7 +240,7 @@ pub struct StartKeyGenRes {
 pub extern "C" fn start_key_gen(
   config: Box<MultisigConfig>,
   my_name: StringView,
-  language: u16,
+  language: u8,
 ) -> CResult<StartKeyGenRes> {
   CResult::new(start_key_gen_rust(config, my_name, language))
 }
@@ -248,8 +248,8 @@ pub extern "C" fn start_key_gen(
 fn start_key_gen_rust(
   config: Box<MultisigConfig>,
   my_name: StringView,
-  language: u16,
-) -> Result<StartKeyGenRes, u16> {
+  language: u8,
+) -> Result<StartKeyGenRes, u8> {
   // 128-bits of entropy for a 12-word seed
   let mut seed = Zeroizing::new([0; 16]);
   OsRng.fill_bytes(seed.as_mut());
@@ -296,7 +296,7 @@ pub struct SecretSharesRes {
 #[no_mangle]
 pub unsafe extern "C" fn get_secret_shares(
   config: &MultisigConfigWithName,
-  language: u16,
+  language: u8,
   seed: StringView,
   machine: Box<SecretShareMachineWrapper>,
   commitments: *const StringView,
@@ -314,12 +314,12 @@ pub unsafe extern "C" fn get_secret_shares(
 
 fn get_secret_shares_rust(
   config: &MultisigConfigWithName,
-  language: u16,
+  language: u8,
   seed: StringView,
   machine: Box<SecretShareMachineWrapper>,
   commitments: *const StringView,
   commitments_len: usize,
-) -> Result<SecretSharesRes, u16> {
+) -> Result<SecretSharesRes, u8> {
   let mut secret_shares_rng = RecommendedTranscript::new(b"HRF Key Gen Secret Shares RNG");
   let Ok(mnemonic) = Mnemonic::from_phrase(
     &seed.to_string().ok_or(INVALID_SEED_ERROR)?,
@@ -414,7 +414,7 @@ unsafe fn complete_key_gen_rust(
   machine_and_commitments: SecretSharesRes,
   shares: *const StringView,
   shares_len: usize,
-) -> Result<KeyGenRes, u16> {
+) -> Result<KeyGenRes, u8> {
   let params = config.params().unwrap();
   let SecretSharesRes { machine, internal_commitments: commitments, .. } = machine_and_commitments;
 
@@ -503,7 +503,6 @@ pub unsafe extern "C" fn keys_participants(keys: &ThresholdKeysWrapper) -> u16 {
 pub unsafe extern "C" fn keys_index(keys: &ThresholdKeysWrapper) -> u16 {
   u16::from(keys.0.params().i()) - 1
 }
-
 
 #[no_mangle]
 pub unsafe extern "C" fn serialize_keys(keys: &ThresholdKeysWrapper) -> OwnedString {

@@ -20,6 +20,7 @@ pub struct ResharerConfig {
   new_threshold: u16,
   resharers: Vec<u16>,
   new_participants: Vec<String>,
+  salt: [u8; 32],
 }
 
 impl ResharerConfig {
@@ -47,9 +48,27 @@ impl ResharerConfig {
   pub extern "C" fn resharer_new_participant(&self, i: usize) -> StringView {
     StringView::new(&self.new_participants[i])
   }
+
+  #[no_mangle]
+  pub extern "C" fn resharer_salt(&self) -> *const u8 {
+    self.salt.as_ptr()
+  }
+
+  fn context(&self) -> String {
+    let mut context = RecommendedTranscript::new(b"HRF Resharing Context String");
+    context.append_message(b"new_threshold", self.new_threshold.to_le_bytes());
+    for resharer in &self.resharers {
+      context.append_message(b"resharer", resharer.to_le_bytes());
+    }
+    for new_participant in &self.new_participants {
+      context.append_message(b"new_participant", new_participant.as_bytes());
+    }
+    context.append_message(b"salt", self.salt);
+    hex::encode(context.challenge(b"challenge"))
+  }
 }
 
-fn check_t_n(threshold: u16, participants: u16) -> Result<(), u16> {
+fn check_t_n(threshold: u16, participants: u16) -> Result<(), u8> {
   match ThresholdParams::new(threshold, participants, Participant::new(1).unwrap()) {
     Err(DkgError::ZeroParameter(..)) => Err(ZERO_PARAMETER_ERROR)?,
     Err(DkgError::InvalidThreshold(..)) => Err(INVALID_THRESHOLD_ERROR)?,
@@ -88,23 +107,32 @@ unsafe fn new_resharer_config_rust(
   resharers_len: u16,
   new_participants: *const StringView,
   new_participants_len: u16,
-) -> Result<ResharerConfigRes, u16> {
+) -> Result<ResharerConfigRes, u8> {
   check_t_n(new_threshold, new_participants_len)?;
-  if new_participants_len == u16::MAX { todo!(); }
+  if new_participants_len == u16::MAX {
+    Err(INVALID_PARTICIPANTS_AMOUNT_ERROR)?;
+  }
 
-  // if resharers_len < keys.params().t() { todo!(); } TODO
   let mut resharers = HashSet::new();
   for resharer in unsafe { std::slice::from_raw_parts(resharers_ptr, resharers_len.into()) } {
-    let resharer = *resharer;
-    if resharer == 0 { todo!(); }
-    resharers.insert(resharer);
+    resharers.insert(*resharer);
   }
-  if resharers.len() != usize::from(resharers_len) { todo!(); }
+  if resharers.len() != usize::from(resharers_len) {
+    Err(DUPLICATED_PARTICIPANT_ERROR)?;
+  }
 
   let mut resharers = resharers.into_iter().collect::<Vec<_>>();
   resharers.sort();
+  if let Some(last) = resharers.last() {
+    if *last == u16::MAX {
+      Err(INVALID_PARTICIPANT_ERROR)?;
+    }
+  } else {
+    Err(NOT_ENOUGH_RESHARERS_ERROR)?;
+  }
 
-  let new_participants = unsafe { std::slice::from_raw_parts(new_participants, new_participants_len.into()) };
+  let new_participants =
+    unsafe { std::slice::from_raw_parts(new_participants, new_participants_len.into()) };
   let mut new_participants_res = vec![];
   for participant in new_participants {
     if participant.len == 0 {
@@ -114,7 +142,11 @@ unsafe fn new_resharer_config_rust(
     new_participants_res.push(participant);
   }
 
-  let config = ResharerConfig { new_threshold, resharers, new_participants: new_participants_res };
+  let mut salt = [0; 32];
+  OsRng.fill_bytes(&mut salt);
+
+  let config =
+    ResharerConfig { new_threshold, resharers, new_participants: new_participants_res, salt };
   let encoded = OwnedString::new(Base64::encode_string(&bincode::serialize(&config).unwrap()));
   Ok(ResharerConfigRes { config: config.into(), encoded })
 }
@@ -124,11 +156,11 @@ pub extern "C" fn decode_resharer_config(config: StringView) -> CResult<Box<Resh
   CResult::new(decode_resharer_config_rust(config))
 }
 
-fn decode_resharer_config_rust(config: StringView) -> Result<Box<ResharerConfig>, u16> {
+fn decode_resharer_config_rust(config: StringView) -> Result<Box<ResharerConfig>, u8> {
   let Ok(config) = Base64::decode_vec(&config.to_string().ok_or(INVALID_ENCODING_ERROR)?) else {
     Err(INVALID_ENCODING_ERROR)?
   };
-  let Ok(config) = bincode::deserialize::<ResharerConfig>(&config) else {
+  let Ok(mut config) = bincode::deserialize::<ResharerConfig>(&config) else {
     Err(INVALID_ENCODING_ERROR)?
   };
 
@@ -137,11 +169,25 @@ fn decode_resharer_config_rust(config: StringView) -> Result<Box<ResharerConfig>
   };
   check_t_n(config.new_threshold, participants_len)?;
 
+  config.resharers =
+    config.resharers.into_iter().collect::<HashSet<_>>().into_iter().collect::<Vec<_>>();
+  config.resharers.sort();
+  if let Some(last) = config.resharers.last() {
+    if *last == u16::MAX {
+      Err(INVALID_PARTICIPANT_ERROR)?;
+    }
+  } else {
+    Err(NOT_ENOUGH_RESHARERS_ERROR)?;
+  }
+
   Ok(Box::new(config))
 }
 
+struct OpaqueResharingMachine(ResharingSecretMachine<Secp256k1>);
+
 #[repr(C)]
 pub struct StartResharerRes {
+  machine: Box<OpaqueResharingMachine>,
   encoded: OwnedString,
 }
 
@@ -150,7 +196,33 @@ pub unsafe extern "C" fn start_resharer(
   keys: &ThresholdKeysWrapper,
   config: Box<ResharerConfig>,
 ) -> CResult<StartResharerRes> {
-  todo!()
+  CResult::new(start_resharer_rust(keys, config))
+}
+
+fn start_resharer_rust(
+  keys: &ThresholdKeysWrapper,
+  config: Box<ResharerConfig>,
+) -> Result<StartResharerRes, u8> {
+  if config.resharers.len() < keys.0.params().t().into() {
+    Err(NOT_ENOUGH_RESHARERS_ERROR)?;
+  }
+  let (machine, message) = ResharingMachine::new(
+    keys.0.clone(),
+    config.resharers.iter().map(|i| Participant::new(*i + 1).unwrap()).collect(),
+    ThresholdParams::new(
+      config.new_threshold,
+      u16::try_from(config.new_participants.len()).unwrap(),
+      Participant::new(1).unwrap(),
+    )
+    .map_err(|_| UNKNOWN_ERROR)?,
+    config.context(),
+  )
+  .ok_or(UNKNOWN_ERROR)?
+  .generate_coefficients(&mut OsRng);
+  Ok(StartResharerRes {
+    machine: Box::new(OpaqueResharingMachine(machine)),
+    encoded: OwnedString::new(Base64::encode_string(&message.serialize())),
+  })
 }
 
 #[repr(C)]
@@ -162,7 +234,7 @@ pub struct StartResharedRes {
 pub unsafe extern "C" fn start_reshared(
   multisig_config: Box<MultisigConfig>,
   reshared_config: Box<ResharerConfig>,
-  resharer_starts: *const  StringView,
+  resharer_starts: *const StringView,
 ) -> CResult<StartResharedRes> {
   todo!()
 }

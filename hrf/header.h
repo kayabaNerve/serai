@@ -65,6 +65,12 @@
 
 #define INVALID_PREPROCESS_ERROR 70
 
+#define INVALID_PARTICIPANTS_AMOUNT_ERROR 81
+
+#define DUPLICATED_PARTICIPANT_ERROR 82
+
+#define NOT_ENOUGH_RESHARERS_ERROR 83
+
 typedef enum Network {
   Mainnet,
   Testnet,
@@ -74,6 +80,8 @@ typedef enum Network {
 typedef struct KeyMachineWrapper KeyMachineWrapper;
 
 typedef struct MultisigConfig MultisigConfig;
+
+typedef struct OpaqueResharingMachine OpaqueResharingMachine;
 
 typedef struct OwnedPortableOutput OwnedPortableOutput;
 
@@ -116,12 +124,12 @@ typedef struct MultisigConfigRes {
 
 typedef struct CResult_MultisigConfigRes {
   struct MultisigConfigRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_MultisigConfigRes;
 
 typedef struct CResult_MultisigConfig {
   struct MultisigConfig *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_MultisigConfig;
 
 typedef struct StartKeyGenRes {
@@ -133,7 +141,7 @@ typedef struct StartKeyGenRes {
 
 typedef struct CResult_StartKeyGenRes {
   struct StartKeyGenRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_StartKeyGenRes;
 
 typedef struct SecretSharesRes {
@@ -144,7 +152,7 @@ typedef struct SecretSharesRes {
 
 typedef struct CResult_SecretSharesRes {
   struct SecretSharesRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_SecretSharesRes;
 
 typedef struct KeyGenRes {
@@ -155,12 +163,12 @@ typedef struct KeyGenRes {
 
 typedef struct CResult_KeyGenRes {
   struct KeyGenRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_KeyGenRes;
 
 typedef struct CResult_ThresholdKeysWrapper {
   struct ThresholdKeysWrapper *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_ThresholdKeysWrapper;
 
 typedef struct SignConfigRes {
@@ -170,7 +178,7 @@ typedef struct SignConfigRes {
 
 typedef struct CResult_SignConfigRes {
   struct SignConfigRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_SignConfigRes;
 
 typedef struct PortableOutput {
@@ -183,7 +191,7 @@ typedef struct PortableOutput {
 
 typedef struct CResult_SignConfig {
   struct SignConfig *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_SignConfig;
 
 typedef struct AttemptSignRes {
@@ -193,7 +201,7 @@ typedef struct AttemptSignRes {
 
 typedef struct CResult_AttemptSignRes {
   struct AttemptSignRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_AttemptSignRes;
 
 typedef struct ContinueSignRes {
@@ -203,12 +211,12 @@ typedef struct ContinueSignRes {
 
 typedef struct CResult_ContinueSignRes {
   struct ContinueSignRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_ContinueSignRes;
 
 typedef struct CResult_OwnedString {
   struct OwnedString *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_OwnedString;
 
 typedef struct ResharerConfigRes {
@@ -218,21 +226,22 @@ typedef struct ResharerConfigRes {
 
 typedef struct CResult_ResharerConfigRes {
   struct ResharerConfigRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_ResharerConfigRes;
 
 typedef struct CResult_____ResharerConfig {
   struct ResharerConfig **value;
-  uint16_t err;
+  uint8_t err;
 } CResult_____ResharerConfig;
 
 typedef struct StartResharerRes {
+  struct OpaqueResharingMachine *machine;
   struct OwnedString encoded;
 } StartResharerRes;
 
 typedef struct CResult_StartResharerRes {
   struct StartResharerRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_StartResharerRes;
 
 typedef struct StartResharedRes {
@@ -241,7 +250,7 @@ typedef struct StartResharedRes {
 
 typedef struct CResult_StartResharedRes {
   struct StartResharedRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_StartResharedRes;
 
 typedef struct CompleteResharerRes {
@@ -250,7 +259,7 @@ typedef struct CompleteResharerRes {
 
 typedef struct CResult_CompleteResharerRes {
   struct CompleteResharerRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_CompleteResharerRes;
 
 typedef struct CompleteResharedRes {
@@ -259,7 +268,7 @@ typedef struct CompleteResharedRes {
 
 typedef struct CResult_CompleteResharedRes {
   struct CompleteResharedRes *value;
-  uint16_t err;
+  uint8_t err;
 } CResult_CompleteResharedRes;
 
 #ifdef __cplusplus
@@ -292,10 +301,10 @@ struct CResult_MultisigConfig decode_multisig_config(struct StringView config);
 
 struct CResult_StartKeyGenRes start_key_gen(struct MultisigConfig *config,
                                             struct StringView my_name,
-                                            uint16_t language);
+                                            uint8_t language);
 
 struct CResult_SecretSharesRes get_secret_shares(const struct MultisigConfigWithName *config,
-                                                 uint16_t language,
+                                                 uint8_t language,
                                                  struct StringView seed,
                                                  struct SecretShareMachineWrapper *machine,
                                                  const struct StringView *commitments,
@@ -375,6 +384,8 @@ uint16_t resharer_resharer(const struct ResharerConfig *self, uintptr_t i);
 uintptr_t resharer_new_participants(const struct ResharerConfig *self);
 
 struct StringView resharer_new_participant(const struct ResharerConfig *self, uintptr_t i);
+
+const uint8_t *resharer_salt(const struct ResharerConfig *self);
 
 struct CResult_ResharerConfigRes new_resharer_config(uint16_t new_threshold,
                                                      const uint16_t *resharers,

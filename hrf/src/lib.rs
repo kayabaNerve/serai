@@ -7,42 +7,47 @@ pub mod sign;
 pub mod resharing;
 
 // Seed languages
-pub const LANGUAGE_ENGLISH: u16 = 1;
-pub const LANGUAGE_CHINESE_SIMPLIFIED: u16 = 2;
-pub const LANGUAGE_CHINESE_TRADITIONAL: u16 = 3;
-pub const LANGUAGE_FRENCH: u16 = 4;
-pub const LANGUAGE_ITALIAN: u16 = 5;
-pub const LANGUAGE_JAPANESE: u16 = 6;
-pub const LANGUAGE_KOREAN: u16 = 7;
-pub const LANGUAGE_SPANISH: u16 = 8;
+pub const LANGUAGE_ENGLISH: u8 = 1;
+pub const LANGUAGE_CHINESE_SIMPLIFIED: u8 = 2;
+pub const LANGUAGE_CHINESE_TRADITIONAL: u8 = 3;
+pub const LANGUAGE_FRENCH: u8 = 4;
+pub const LANGUAGE_ITALIAN: u8 = 5;
+pub const LANGUAGE_JAPANESE: u8 = 6;
+pub const LANGUAGE_KOREAN: u8 = 7;
+pub const LANGUAGE_SPANISH: u8 = 8;
 
 // Common errors
-pub const UNKNOWN_ERROR: u16 = 21;
-pub const INVALID_ENCODING_ERROR: u16 = 22;
-pub const INVALID_PARTICIPANT_ERROR: u16 = 23;
-pub const INVALID_SHARE_ERROR: u16 = 24;
+pub const UNKNOWN_ERROR: u8 = 21;
+pub const INVALID_ENCODING_ERROR: u8 = 22;
+pub const INVALID_PARTICIPANT_ERROR: u8 = 23;
+pub const INVALID_SHARE_ERROR: u8 = 24;
 
 // Key gen errors
-pub const ZERO_PARAMETER_ERROR: u16 = 41;
-pub const INVALID_THRESHOLD_ERROR: u16 = 42;
-pub const INVALID_NAME_ERROR: u16 = 43;
-pub const UNKNOWN_LANGUAGE_ERROR: u16 = 44;
-pub const INVALID_SEED_ERROR: u16 = 45;
-pub const INVALID_AMOUNT_OF_COMMITMENTS_ERROR: u16 = 46;
-pub const INVALID_COMMITMENTS_ERROR: u16 = 47;
-pub const INVALID_AMOUNT_OF_SHARES_ERROR: u16 = 48;
+pub const ZERO_PARAMETER_ERROR: u8 = 41;
+pub const INVALID_THRESHOLD_ERROR: u8 = 42;
+pub const INVALID_NAME_ERROR: u8 = 43;
+pub const UNKNOWN_LANGUAGE_ERROR: u8 = 44;
+pub const INVALID_SEED_ERROR: u8 = 45;
+pub const INVALID_AMOUNT_OF_COMMITMENTS_ERROR: u8 = 46;
+pub const INVALID_COMMITMENTS_ERROR: u8 = 47;
+pub const INVALID_AMOUNT_OF_SHARES_ERROR: u8 = 48;
 
 // Sign errors
-pub const INVALID_OUTPUT_ERROR: u16 = 61;
-pub const INVALID_ADDRESS_ERROR: u16 = 62;
-pub const INVALID_NETWORK_ERROR: u16 = 63;
-pub const NO_INPUTS_ERROR: u16 = 64;
-pub const NO_OUTPUTS_ERROR: u16 = 65;
-pub const DUST_ERROR: u16 = 66;
-pub const NOT_ENOUGH_FUNDS_ERROR: u16 = 67;
-pub const TOO_LARGE_TRANSACTION_ERROR: u16 = 68;
-pub const WRONG_KEYS_ERROR: u16 = 69;
-pub const INVALID_PREPROCESS_ERROR: u16 = 70;
+pub const INVALID_OUTPUT_ERROR: u8 = 61;
+pub const INVALID_ADDRESS_ERROR: u8 = 62;
+pub const INVALID_NETWORK_ERROR: u8 = 63;
+pub const NO_INPUTS_ERROR: u8 = 64;
+pub const NO_OUTPUTS_ERROR: u8 = 65;
+pub const DUST_ERROR: u8 = 66;
+pub const NOT_ENOUGH_FUNDS_ERROR: u8 = 67;
+pub const TOO_LARGE_TRANSACTION_ERROR: u8 = 68;
+pub const WRONG_KEYS_ERROR: u8 = 69;
+pub const INVALID_PREPROCESS_ERROR: u8 = 70;
+
+// Resharing errors
+pub const INVALID_PARTICIPANTS_AMOUNT_ERROR: u8 = 81;
+pub const DUPLICATED_PARTICIPANT_ERROR: u8 = 82;
+pub const NOT_ENOUGH_RESHARERS_ERROR: u8 = 83;
 
 #[repr(C)]
 pub struct StringView {
@@ -78,10 +83,10 @@ impl OwnedString {
 #[repr(C)]
 pub struct CResult<T> {
   value: Option<Box<T>>,
-  err: u16,
+  err: u8,
 }
 impl<T> CResult<T> {
-  pub(crate) fn new(res: Result<T, u16>) -> Self {
+  pub(crate) fn new(res: Result<T, u8>) -> Self {
     match res {
       Ok(value) => CResult { value: Some(value.into()), err: 0 },
       Err(e) => CResult { value: None, err: e },

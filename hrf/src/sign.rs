@@ -157,7 +157,7 @@ impl SignConfig {
   }
 }
 
-fn sign_config_to_tx(network: BNetwork, config: &SignConfig) -> Result<SignableTransaction, u16> {
+fn sign_config_to_tx(network: BNetwork, config: &SignConfig) -> Result<SignableTransaction, u8> {
   SignableTransaction::new(
     config
       .inputs
@@ -178,7 +178,7 @@ fn sign_config_to_tx(network: BNetwork, config: &SignConfig) -> Result<SignableT
           *amount,
         ))
       })
-      .collect::<Result<Vec<_>, u16>>()?,
+      .collect::<Result<Vec<_>, u8>>()?,
     Some(
       Address::<NetworkUnchecked>::from_str(&config.change)
         .map_err(|_| INVALID_ADDRESS_ERROR)?
@@ -232,7 +232,7 @@ fn new_sign_config_rust(
   payment_amounts: &[u64],
   change: StringView,
   fee_per_weight: u64,
-) -> Result<SignConfigRes, u16> {
+) -> Result<SignConfigRes, u8> {
   let network = network.to_bitcoin();
   let config = SignConfig {
     network,
@@ -272,7 +272,7 @@ pub extern "C" fn decode_sign_config(network: Network, encoded: StringView) -> C
   CResult::new(decode_sign_config_rust(network, encoded))
 }
 
-fn decode_sign_config_rust(network: Network, encoded: StringView) -> Result<SignConfig, u16> {
+fn decode_sign_config_rust(network: Network, encoded: StringView) -> Result<SignConfig, u8> {
   let network = network.to_bitcoin();
   let decoded = bincode::deserialize::<SignConfig>(
     &Base64::decode_vec(&encoded.to_string().ok_or(INVALID_ENCODING_ERROR)?)
@@ -306,7 +306,7 @@ pub extern "C" fn attempt_sign(
 fn attempt_sign_rust(
   keys: &ThresholdKeysWrapper,
   config: &SignConfig,
-) -> Result<AttemptSignRes, u16> {
+) -> Result<AttemptSignRes, u8> {
   let (machine, preprocesses) = sign_config_to_tx(config.network, config)
     .expect("created a SignConfig which couldn't create a TX")
     .multisig(tweak_keys(&keys.0), RecommendedTranscript::new(b"HRF Sign Transaction"))
@@ -337,7 +337,7 @@ fn continue_sign_rust(
   machine: Box<TransactionSignMachineWrapper>,
   preprocesses: *const StringView,
   preprocesses_len: usize,
-) -> Result<ContinueSignRes, u16> {
+) -> Result<ContinueSignRes, u8> {
   let preprocesses = unsafe { std::slice::from_raw_parts(preprocesses, preprocesses_len) };
 
   let mut map = HashMap::new();
@@ -377,7 +377,7 @@ pub unsafe extern "C" fn complete_sign(
 fn complete_sign_rust(
   machine: Box<TransactionSignatureMachineWrapper>,
   shares: &[StringView],
-) -> Result<OwnedString, u16> {
+) -> Result<OwnedString, u8> {
   let mut map = HashMap::new();
   for (i, share) in shares.iter().enumerate() {
     let share = share.to_string().ok_or(INVALID_ENCODING_ERROR)?;
