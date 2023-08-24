@@ -73,6 +73,8 @@
 
 #define INVALID_RESHARED_MSG_ERROR 84
 
+#define INVALID_RESHARER_MSG_ERROR 85
+
 typedef enum Network {
   Mainnet,
   Testnet,
@@ -82,6 +84,8 @@ typedef enum Network {
 typedef struct KeyMachineWrapper KeyMachineWrapper;
 
 typedef struct MultisigConfig MultisigConfig;
+
+typedef struct OpaqueResharedMachine OpaqueResharedMachine;
 
 typedef struct OpaqueResharingMachine OpaqueResharingMachine;
 
@@ -248,6 +252,8 @@ typedef struct CResult_StartResharerRes {
 } CResult_StartResharerRes;
 
 typedef struct StartResharedRes {
+  uintptr_t resharers_len;
+  struct OpaqueResharedMachine *machine;
   struct OwnedString encoded;
 } StartResharedRes;
 
@@ -255,15 +261,6 @@ typedef struct CResult_StartResharedRes {
   struct StartResharedRes *value;
   uint8_t err;
 } CResult_StartResharedRes;
-
-typedef struct CompleteResharedRes {
-  struct ThresholdKeysWrapper keys;
-} CompleteResharedRes;
-
-typedef struct CResult_CompleteResharedRes {
-  struct CompleteResharedRes *value;
-  uint8_t err;
-} CResult_CompleteResharedRes;
 
 #ifdef __cplusplus
 extern "C" {
@@ -392,15 +389,15 @@ struct CResult_____ResharerConfig decode_resharer_config(struct StringView confi
 struct CResult_StartResharerRes start_resharer(const struct ThresholdKeysWrapper *keys,
                                                struct ResharerConfig *config);
 
-struct CResult_StartResharedRes start_reshared(struct MultisigConfig *multisig_config,
-                                               struct ResharerConfig *reshared_config,
+struct CResult_StartResharedRes start_reshared(struct ResharerConfig *resharer_config,
+                                               struct StringView my_name,
                                                const struct StringView *resharer_starts);
 
 struct CResult_OwnedString complete_resharer(struct StartResharerRes machine,
                                              const struct StringView *encryption_keys_of_reshared_to);
 
-struct CResult_CompleteResharedRes complete_reshared(struct StartResharedRes machine,
-                                                     const struct StringView *resharer_completes);
+struct CResult_ThresholdKeysWrapper complete_reshared(struct StartResharedRes prior,
+                                                      const struct StringView *resharer_completes);
 
 #ifdef __cplusplus
 } // extern "C"

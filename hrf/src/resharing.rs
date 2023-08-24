@@ -1,19 +1,20 @@
 use std::collections::{HashSet, HashMap};
 
-use zeroize::Zeroizing;
-
-use rand_core::{RngCore, SeedableRng, OsRng};
-use rand_chacha::ChaCha20Rng;
+use rand_core::{RngCore, OsRng};
 
 use transcript::{Transcript, RecommendedTranscript};
 
 use ciphersuite::{Ciphersuite, Secp256k1};
-use ::frost::dkg::{*, encryption::*, resharing::*};
+use ::frost::dkg::{
+  *,
+  encryption::*,
+  resharing::{*, common::*},
+};
 
 use base64ct::{Encoding, Base64};
 use serde::{Serialize, Deserialize};
 
-use crate::{*, key_gen::*};
+use crate::*;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct ResharerConfig {
@@ -227,18 +228,80 @@ fn start_resharer_rust(
   })
 }
 
+struct OpaqueResharedMachine(ResharedMachine<Secp256k1>);
+
 #[repr(C)]
 pub struct StartResharedRes {
+  resharers_len: usize,
+  machine: Box<OpaqueResharedMachine>,
   encoded: OwnedString,
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn start_reshared(
-  multisig_config: Box<MultisigConfig>,
-  reshared_config: Box<ResharerConfig>,
+  resharer_config: Box<ResharerConfig>,
+  my_name: StringView,
   resharer_starts: *const StringView,
 ) -> CResult<StartResharedRes> {
-  todo!()
+  CResult::new(start_reshared_rust(resharer_config, my_name, resharer_starts))
+}
+
+fn start_reshared_rust(
+  resharer_config: Box<ResharerConfig>,
+  my_name: StringView,
+  resharer_starts: *const StringView,
+) -> Result<StartResharedRes, u8> {
+  let mut msgs = vec![];
+  for view in
+    (unsafe { std::slice::from_raw_parts(resharer_starts, resharer_config.resharers.len()) }).iter()
+  {
+    let bytes = Base64::decode_vec(&view.to_string().ok_or(INVALID_ENCODING_ERROR)?)
+      .map_err(|_| INVALID_ENCODING_ERROR)?;
+    let msg = EncryptionKeyMessage::<Secp256k1, Commitments<Secp256k1>>::read(
+      &mut bytes.as_slice(),
+      ThresholdParams::new(
+        resharer_config.new_threshold,
+        resharer_config.new_participants.len().try_into().unwrap(),
+        Participant::new(1).unwrap(),
+      )
+      .unwrap(),
+    )
+    .map_err(|_| INVALID_RESHARER_MSG_ERROR)?;
+    msgs.push(msg);
+  }
+
+  let my_name = my_name.to_string().ok_or(INVALID_NAME_ERROR)?;
+  let Ok((machine, msg)) = ResharedMachine::new(
+    &mut OsRng,
+    u16::try_from(resharer_config.resharers.len()).unwrap(),
+    ThresholdParams::new(
+      resharer_config.new_threshold,
+      u16::try_from(resharer_config.new_participants.len()).unwrap(),
+      Participant::new(
+        u16::try_from(
+          resharer_config
+            .new_participants
+            .iter()
+            .position(|name| name == &my_name)
+            .ok_or(INVALID_PARTICIPANT_ERROR)?,
+        )
+        .unwrap() +
+          1,
+      )
+      .unwrap(),
+    )
+    .unwrap(),
+    resharer_config.context(),
+    msgs,
+  ) else {
+    Err(INVALID_RESHARER_MSG_ERROR)?
+  };
+
+  Ok(StartResharedRes {
+    resharers_len: resharer_config.resharers.len(),
+    machine: Box::new(OpaqueResharedMachine(machine)),
+    encoded: OwnedString::new(Base64::encode_string(&msg.serialize())),
+  })
 }
 
 #[no_mangle]
@@ -284,15 +347,33 @@ fn complete_resharer_rust(
   )))
 }
 
-#[repr(C)]
-pub struct CompleteResharedRes {
-  keys: ThresholdKeysWrapper,
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn complete_reshared(
-  machine: StartResharedRes,
+  prior: StartResharedRes,
   resharer_completes: *const StringView,
-) -> CResult<CompleteResharedRes> {
-  todo!()
+) -> CResult<ThresholdKeysWrapper> {
+  CResult::new(complete_reshared_rust(prior, resharer_completes))
+}
+
+fn complete_reshared_rust(
+  prior: StartResharedRes,
+  resharer_completes: *const StringView,
+) -> Result<ThresholdKeysWrapper, u8> {
+  let mut msgs = vec![];
+  for view in
+    (unsafe { std::slice::from_raw_parts(resharer_completes, prior.resharers_len) }).iter()
+  {
+    let bytes = Base64::decode_vec(&view.to_string().ok_or(INVALID_ENCODING_ERROR)?)
+      .map_err(|_| INVALID_ENCODING_ERROR)?;
+    let msg = EncryptedMessage::<Secp256k1, SecretShare<<Secp256k1 as Ciphersuite>::F>>::read(
+      &mut bytes.as_slice(),
+      ThresholdParams::new(1, 1, Participant::new(1).unwrap()).unwrap(),
+    )
+    .map_err(|_| INVALID_RESHARER_MSG_ERROR)?;
+    msgs.push(msg);
+  }
+
+  Ok(ThresholdKeysWrapper(ThresholdKeys::new(
+    prior.machine.0.accept_shares(&mut OsRng, msgs).map_err(|_| INVALID_RESHARER_MSG_ERROR)?,
+  )))
 }

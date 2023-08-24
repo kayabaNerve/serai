@@ -49,6 +49,7 @@ pub const INVALID_PARTICIPANTS_AMOUNT_ERROR: u8 = 81;
 pub const DUPLICATED_PARTICIPANT_ERROR: u8 = 82;
 pub const NOT_ENOUGH_RESHARERS_ERROR: u8 = 83;
 pub const INVALID_RESHARED_MSG_ERROR: u8 = 84;
+pub const INVALID_RESHARER_MSG_ERROR: u8 = 85;
 
 #[repr(C)]
 pub struct StringView {
