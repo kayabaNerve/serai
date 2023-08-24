@@ -1,4 +1,4 @@
-pub(crate) mod common;
+pub mod common;
 
 mod resharer;
 pub use resharer::*;
