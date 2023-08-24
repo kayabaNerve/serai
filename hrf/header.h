@@ -71,6 +71,8 @@
 
 #define NOT_ENOUGH_RESHARERS_ERROR 83
 
+#define INVALID_RESHARED_MSG_ERROR 84
+
 typedef enum Network {
   Mainnet,
   Testnet,
@@ -235,6 +237,7 @@ typedef struct CResult_____ResharerConfig {
 } CResult_____ResharerConfig;
 
 typedef struct StartResharerRes {
+  uintptr_t new_participants_len;
   struct OpaqueResharingMachine *machine;
   struct OwnedString encoded;
 } StartResharerRes;
@@ -252,15 +255,6 @@ typedef struct CResult_StartResharedRes {
   struct StartResharedRes *value;
   uint8_t err;
 } CResult_StartResharedRes;
-
-typedef struct CompleteResharerRes {
-  struct OwnedString encoded;
-} CompleteResharerRes;
-
-typedef struct CResult_CompleteResharerRes {
-  struct CompleteResharerRes *value;
-  uint8_t err;
-} CResult_CompleteResharerRes;
 
 typedef struct CompleteResharedRes {
   struct ThresholdKeysWrapper keys;
@@ -402,8 +396,8 @@ struct CResult_StartResharedRes start_reshared(struct MultisigConfig *multisig_c
                                                struct ResharerConfig *reshared_config,
                                                const struct StringView *resharer_starts);
 
-struct CResult_CompleteResharerRes complete_resharer(struct StartResharerRes machine,
-                                                     const struct StringView *encryption_keys_of_reshared_to);
+struct CResult_OwnedString complete_resharer(struct StartResharerRes machine,
+                                             const struct StringView *encryption_keys_of_reshared_to);
 
 struct CResult_CompleteResharedRes complete_reshared(struct StartResharedRes machine,
                                                      const struct StringView *resharer_completes);

@@ -187,6 +187,7 @@ struct OpaqueResharingMachine(ResharingSecretMachine<Secp256k1>);
 
 #[repr(C)]
 pub struct StartResharerRes {
+  new_participants_len: usize,
   machine: Box<OpaqueResharingMachine>,
   encoded: OwnedString,
 }
@@ -220,6 +221,7 @@ fn start_resharer_rust(
   .ok_or(UNKNOWN_ERROR)?
   .generate_coefficients(&mut OsRng);
   Ok(StartResharerRes {
+    new_participants_len: config.new_participants.len(),
     machine: Box::new(OpaqueResharingMachine(machine)),
     encoded: OwnedString::new(Base64::encode_string(&message.serialize())),
   })
@@ -239,17 +241,47 @@ pub unsafe extern "C" fn start_reshared(
   todo!()
 }
 
-#[repr(C)]
-pub struct CompleteResharerRes {
-  encoded: OwnedString,
-}
-
 #[no_mangle]
 pub unsafe extern "C" fn complete_resharer(
   machine: StartResharerRes,
   encryption_keys_of_reshared_to: *const StringView,
-) -> CResult<CompleteResharerRes> {
-  todo!()
+) -> CResult<OwnedString> {
+  CResult::new(complete_resharer_rust(machine, encryption_keys_of_reshared_to))
+}
+
+fn complete_resharer_rust(
+  prior: StartResharerRes,
+  encryption_keys_of_reshared_to: *const StringView,
+) -> Result<OwnedString, u8> {
+  let mut msgs = HashMap::new();
+  for (i, view) in (unsafe {
+    std::slice::from_raw_parts(encryption_keys_of_reshared_to, prior.new_participants_len)
+  })
+  .iter()
+  .enumerate()
+  {
+    let bytes = Base64::decode_vec(&view.to_string().ok_or(INVALID_ENCODING_ERROR)?)
+      .map_err(|_| INVALID_ENCODING_ERROR)?;
+    let msg = EncryptionKeyMessage::<Secp256k1, ()>::read(
+      &mut bytes.as_slice(),
+      ThresholdParams::new(1, 1, Participant::new(1).unwrap()).unwrap(),
+    )
+    .map_err(|_| INVALID_RESHARED_MSG_ERROR)?;
+    msgs.insert(Participant::new((i + 1).try_into().unwrap()).unwrap(), msg);
+  }
+  Ok(OwnedString::new(Base64::encode_string(
+    &bincode::serialize(
+      &prior
+        .machine
+        .0
+        .generate_secret_shares(&mut OsRng, msgs)
+        .map_err(|_| INVALID_RESHARED_MSG_ERROR)?
+        .into_iter()
+        .map(|(key, value)| (u16::from(key), value.serialize()))
+        .collect::<HashMap<_, _>>(),
+    )
+    .unwrap(),
+  )))
 }
 
 #[repr(C)]
