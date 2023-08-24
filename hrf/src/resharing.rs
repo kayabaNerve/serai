@@ -81,7 +81,7 @@ fn check_t_n(threshold: u16, participants: u16) -> Result<(), u8> {
 
 #[repr(C)]
 pub struct ResharerConfigRes {
-  config: Box<ResharerConfig>,
+  config: ResharerConfig,
   encoded: OwnedString,
 }
 
@@ -149,15 +149,15 @@ unsafe fn new_resharer_config_rust(
   let config =
     ResharerConfig { new_threshold, resharers, new_participants: new_participants_res, salt };
   let encoded = OwnedString::new(Base64::encode_string(&bincode::serialize(&config).unwrap()));
-  Ok(ResharerConfigRes { config: config.into(), encoded })
+  Ok(ResharerConfigRes { config, encoded })
 }
 
 #[no_mangle]
-pub extern "C" fn decode_resharer_config(config: StringView) -> CResult<Box<ResharerConfig>> {
+pub extern "C" fn decode_resharer_config(config: StringView) -> CResult<ResharerConfig> {
   CResult::new(decode_resharer_config_rust(config))
 }
 
-fn decode_resharer_config_rust(config: StringView) -> Result<Box<ResharerConfig>, u8> {
+fn decode_resharer_config_rust(config: StringView) -> Result<ResharerConfig, u8> {
   let Ok(config) = Base64::decode_vec(&config.to_string().ok_or(INVALID_ENCODING_ERROR)?) else {
     Err(INVALID_ENCODING_ERROR)?
   };
@@ -181,7 +181,7 @@ fn decode_resharer_config_rust(config: StringView) -> Result<Box<ResharerConfig>
     Err(NOT_ENOUGH_RESHARERS_ERROR)?;
   }
 
-  Ok(Box::new(config))
+  Ok(config)
 }
 
 struct OpaqueResharingMachine(ResharingSecretMachine<Secp256k1>);

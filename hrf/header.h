@@ -226,7 +226,7 @@ typedef struct CResult_OwnedString {
 } CResult_OwnedString;
 
 typedef struct ResharerConfigRes {
-  struct ResharerConfig *config;
+  struct ResharerConfig config;
   struct OwnedString encoded;
 } ResharerConfigRes;
 
@@ -235,10 +235,10 @@ typedef struct CResult_ResharerConfigRes {
   uint8_t err;
 } CResult_ResharerConfigRes;
 
-typedef struct CResult_____ResharerConfig {
-  struct ResharerConfig **value;
+typedef struct CResult_ResharerConfig {
+  struct ResharerConfig *value;
   uint8_t err;
-} CResult_____ResharerConfig;
+} CResult_ResharerConfig;
 
 typedef struct StartResharerRes {
   uintptr_t new_participants_len;
@@ -384,7 +384,7 @@ struct CResult_ResharerConfigRes new_resharer_config(uint16_t new_threshold,
                                                      const struct StringView *new_participants,
                                                      uint16_t new_participants_len);
 
-struct CResult_____ResharerConfig decode_resharer_config(struct StringView config);
+struct CResult_ResharerConfig decode_resharer_config(struct StringView config);
 
 struct CResult_StartResharerRes start_resharer(const struct ThresholdKeysWrapper *keys,
                                                struct ResharerConfig *config);
