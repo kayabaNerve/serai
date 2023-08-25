@@ -70,19 +70,6 @@ impl MultisigConfig {
   pub extern "C" fn encode_multisig_config(&self) -> OwnedString {
     OwnedString::new(Base64::encode_string(&bincode::serialize(self).unwrap()))
   }
-
-  #[no_mangle]
-  pub extern "C" fn decode_multisig_config(str: StringView) -> CResult<Self> {
-    CResult::new((|| {
-      Ok(
-        bincode::deserialize(
-          &Base64::decode_vec(&str.to_string().ok_or(INVALID_ENCODING_ERROR)?)
-            .map_err(|_| INVALID_ENCODING_ERROR)?,
-        )
-        .unwrap(),
-      )
-    })())
-  }
 }
 
 #[repr(C)]
