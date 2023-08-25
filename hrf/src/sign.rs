@@ -43,19 +43,21 @@ pub unsafe extern "C" fn address_for_keys(
   keys: &ThresholdKeysWrapper,
 ) -> OwnedString {
   OwnedString::new(
-    address(network.to_bitcoin(), tweak_keys(&keys.0).group_key())
-      .expect("tweaked keys didn't have an address")
-      .to_string(),
+    Address::new(
+      network.to_bitcoin(),
+      address_payload(tweak_keys(&keys.0).group_key())
+        .expect("tweaked keys didn't have an address"),
+    )
+    .to_string(),
   )
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn script_pubkey_for_keys(keys: &ThresholdKeysWrapper) -> OwnedString {
   OwnedString::new(hex::encode(
-    address(BNetwork::Bitcoin, tweak_keys(&keys.0).group_key())
-      .expect("tweaked keys didn't have an address for the script_pubkey")
-      .script_pubkey()
-      .into_bytes(),
+    address_payload(tweak_keys(&keys.0).group_key())
+      .expect("tweaked keys didn't have a script_pubkey")
+      .script_pubkey(),
   ))
 }
 
@@ -195,6 +197,7 @@ fn sign_config_to_tx(network: BNetwork, config: &SignConfig) -> Result<SignableT
     TransactionError::TooMuchData => unreachable!(),
     TransactionError::NotEnoughFunds => NOT_ENOUGH_FUNDS_ERROR,
     TransactionError::TooLargeTransaction => TOO_LARGE_TRANSACTION_ERROR,
+    TransactionError::TooLowFee => FEE_ERROR,
   })
 }
 

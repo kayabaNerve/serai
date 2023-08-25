@@ -43,6 +43,7 @@ pub const NOT_ENOUGH_FUNDS_ERROR: u8 = 67;
 pub const TOO_LARGE_TRANSACTION_ERROR: u8 = 68;
 pub const WRONG_KEYS_ERROR: u8 = 69;
 pub const INVALID_PREPROCESS_ERROR: u8 = 70;
+pub const FEE_ERROR: u8 = 71;
 
 // Resharing errors
 pub const INVALID_PARTICIPANTS_AMOUNT_ERROR: u8 = 81;

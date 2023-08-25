@@ -10,7 +10,6 @@ unmaintained = "warn"
 ignore = [
   "RUSTSEC-2020-0071", # https://github.com/chronotope/chrono/issues/602
   "RUSTSEC-2021-0139", # https://github.com/serai-dex/serai/228
-  "RUSTSEC-2021-0145", # https://github.com/serai-dex/serai/225
   "RUSTSEC-2022-0061", # https://github.com/serai-dex/serai/227
 ]
 
@@ -42,7 +41,40 @@ copyleft = "deny"
 allow-osi-fsf-free = "neither"
 default = "deny"
 
+<<<<<<< HEAD
 exceptions = []
+=======
+exceptions = [
+  { allow = ["AGPL-3.0"], name = "serai-env" },
+
+  { allow = ["AGPL-3.0"], name = "ethereum-serai" },
+
+  { allow = ["AGPL-3.0"], name = "serai-message-queue" },
+
+  { allow = ["AGPL-3.0"], name = "serai-processor-messages" },
+  { allow = ["AGPL-3.0"], name = "serai-processor" },
+
+  { allow = ["AGPL-3.0"], name = "tributary-chain" },
+  { allow = ["AGPL-3.0"], name = "serai-coordinator" },
+
+  { allow = ["AGPL-3.0"], name = "serai-tokens-pallet" },
+
+  { allow = ["AGPL-3.0"], name = "serai-in-instructions-pallet" },
+
+  { allow = ["AGPL-3.0"], name = "serai-validator-sets-pallet" },
+
+  { allow = ["AGPL-3.0"], name = "serai-runtime" },
+  { allow = ["AGPL-3.0"], name = "serai-node" },
+
+  { allow = ["AGPL-3.0"], name = "serai-client" },
+
+  { allow = ["AGPL-3.0"], name = "serai-docker-tests" },
+  { allow = ["AGPL-3.0"], name = "serai-message-queue-tests" },
+  { allow = ["AGPL-3.0"], name = "serai-processor-tests" },
+  { allow = ["AGPL-3.0"], name = "serai-coordinator-tests" },
+  { allow = ["AGPL-3.0"], name = "serai-reproducible-runtime-tests" },
+]
+>>>>>>> develop
 
 [[licenses.clarify]]
 name = "ring"
@@ -56,12 +88,14 @@ license-files = [
 multiple-versions = "warn"
 wildcards = "warn"
 highlight = "all"
+deny = [ { name = "serde_derive", version = ">=1.0.172, <1.0.185" } ]
 
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = [
+  "https://github.com/serai-dex/schnorrkel",
   "https://github.com/serai-dex/substrate-bip39",
   "https://github.com/serai-dex/substrate",
   "https://github.com/monero-rs/base58-monero",

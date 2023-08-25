@@ -1,12 +1,13 @@
 [package]
 name = "flexible-transcript"
-version = "0.3.1"
+version = "0.3.2"
 description = "A simple transcript trait definition, along with viable options"
 license = "MIT"
 repository = "https://github.com/serai-dex/serai/tree/develop/crypto/transcript"
 authors = ["Luke Parker <lukeparker5132@gmail.com>"]
 keywords = ["transcript"]
 edition = "2021"
+rust-version = "1.66"
 
 [package.metadata.docs.rs]
 all-features = true
