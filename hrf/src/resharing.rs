@@ -240,21 +240,16 @@ pub struct StartResharedRes {
 
 #[no_mangle]
 pub unsafe extern "C" fn start_reshared(
-  existing_multisig_config: Box<MultisigConfig>,
+  multisig_name: StringView,
   resharer_config: Box<ResharerConfig>,
   my_name: StringView,
   resharer_starts: *const StringView,
 ) -> CResult<StartResharedRes> {
-  CResult::new(start_reshared_rust(
-    existing_multisig_config,
-    resharer_config,
-    my_name,
-    resharer_starts,
-  ))
+  CResult::new(start_reshared_rust(multisig_name, resharer_config, my_name, resharer_starts))
 }
 
 fn start_reshared_rust(
-  existing_multisig_config: Box<MultisigConfig>,
+  multisig_name: StringView,
   resharer_config: Box<ResharerConfig>,
   my_name: StringView,
   resharer_starts: *const StringView,
@@ -305,13 +300,13 @@ fn start_reshared_rust(
     Err(INVALID_RESHARER_MSG_ERROR)?
   };
 
-  let mut multisig_config = existing_multisig_config;
-  multisig_config.threshold = resharer_config.new_threshold;
-  multisig_config.participants = resharer_config.new_participants.clone();
-  multisig_config.salt = resharer_config.salt;
-
   Ok(StartResharedRes {
-    multisig_config,
+    multisig_config: Box::new(MultisigConfig {
+      multisig_name: multisig_name.to_string().ok_or(INVALID_NAME_ERROR)?,
+      threshold: resharer_config.new_threshold,
+      participants: resharer_config.new_participants.clone(),
+      salt: resharer_config.salt,
+    }),
     resharers_len: resharer_config.resharers.len(),
     machine: Box::new(OpaqueResharedMachine(machine)),
     encoded: OwnedString::new(Base64::encode_string(&msg.serialize())),

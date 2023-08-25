@@ -402,7 +402,7 @@ struct CResult_ResharerConfig decode_resharer_config(struct StringView config);
 struct CResult_StartResharerRes start_resharer(const struct ThresholdKeysWrapper *keys,
                                                struct ResharerConfig *config);
 
-struct CResult_StartResharedRes start_reshared(struct MultisigConfig *existing_multisig_config,
+struct CResult_StartResharedRes start_reshared(struct StringView multisig_name,
                                                struct ResharerConfig *resharer_config,
                                                struct StringView my_name,
                                                const struct StringView *resharer_starts);

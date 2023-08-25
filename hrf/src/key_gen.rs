@@ -19,7 +19,7 @@ use crate::*;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct MultisigConfig {
-  multisig_name: String,
+  pub(crate) multisig_name: String,
   pub(crate) threshold: u16,
   pub(crate) participants: Vec<String>,
   // TODO: The wallet MUST check this salt hasn't been prior observed in any prior protocol.
