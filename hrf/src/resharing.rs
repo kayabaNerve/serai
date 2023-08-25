@@ -359,7 +359,7 @@ fn complete_resharer_rust(
 #[repr(C)]
 pub struct ResharedRes {
   config: Box<MultisigConfig>,
-  keys: ThresholdKeysWrapper,
+  keys: Box<ThresholdKeysWrapper>,
 }
 
 #[no_mangle]
@@ -390,8 +390,8 @@ fn complete_reshared_rust(
 
   Ok(ResharedRes {
     config: prior.multisig_config,
-    keys: ThresholdKeysWrapper(ThresholdKeys::new(
+    keys: Box::new(ThresholdKeysWrapper(ThresholdKeys::new(
       prior.machine.0.accept_shares(&mut OsRng, msgs).map_err(|_| INVALID_RESHARER_MSG_ERROR)?,
-    )),
+    ))),
   })
 }
