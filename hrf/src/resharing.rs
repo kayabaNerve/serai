@@ -4,7 +4,7 @@ use rand_core::{RngCore, OsRng};
 
 use transcript::{Transcript, RecommendedTranscript};
 
-use ciphersuite::{Ciphersuite, Secp256k1};
+use ciphersuite::{group::GroupEncoding, Ciphersuite, Secp256k1};
 use ::frost::dkg::{
   *,
   encryption::*,
@@ -359,6 +359,7 @@ fn complete_resharer_rust(
 #[repr(C)]
 pub struct ResharedRes {
   config: Box<MultisigConfig>,
+  id: OwnedString,
   keys: Box<ThresholdKeysWrapper>,
 }
 
@@ -388,10 +389,30 @@ fn complete_reshared_rust(
     msgs.push(msg);
   }
 
+  let keys = ThresholdKeys::new(
+    prior.machine.0.accept_shares(&mut OsRng, msgs).map_err(|_| INVALID_RESHARER_MSG_ERROR)?,
+  );
+
+  let mut id = RecommendedTranscript::new(b"HRF Reshared Multisig ID");
+  id.append_message(b"threshold", prior.multisig_config.threshold.to_le_bytes());
+  id.append_message(
+    b"participants",
+    bincode::serialize(&prior.multisig_config.participants).unwrap(),
+  );
+  id.append_message(b"salt", prior.multisig_config.salt);
+  id.append_message(b"group_key", keys.group_key().to_bytes());
+  for i in 0 .. prior.multisig_config.participants.len() {
+    id.append_message(
+      b"verification_share",
+      keys.verification_shares()[&Participant::new((i + 1).try_into().unwrap()).unwrap()]
+        .to_bytes(),
+    );
+  }
+  let id = id.challenge(b"id");
+
   Ok(ResharedRes {
     config: prior.multisig_config,
-    keys: Box::new(ThresholdKeysWrapper(ThresholdKeys::new(
-      prior.machine.0.accept_shares(&mut OsRng, msgs).map_err(|_| INVALID_RESHARER_MSG_ERROR)?,
-    ))),
+    id: OwnedString::new(hex::encode(id)),
+    keys: Box::new(ThresholdKeysWrapper(keys)),
   })
 }

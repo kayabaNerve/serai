@@ -267,6 +267,7 @@ typedef struct CResult_StartResharedRes {
 
 typedef struct ResharedRes {
   struct MultisigConfig *config;
+  struct OwnedString id;
   struct ThresholdKeysWrapper *keys;
 } ResharedRes;
 
