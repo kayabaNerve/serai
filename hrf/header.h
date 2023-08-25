@@ -120,6 +120,11 @@ typedef struct StringView {
   uintptr_t len;
 } StringView;
 
+typedef struct CResult_MultisigConfig {
+  struct MultisigConfig *value;
+  uint8_t err;
+} CResult_MultisigConfig;
+
 typedef struct MultisigConfigWithName {
   struct MultisigConfig *config;
   struct RustString *my_name;
@@ -134,11 +139,6 @@ typedef struct CResult_MultisigConfigRes {
   struct MultisigConfigRes *value;
   uint8_t err;
 } CResult_MultisigConfigRes;
-
-typedef struct CResult_MultisigConfig {
-  struct MultisigConfig *value;
-  uint8_t err;
-} CResult_MultisigConfig;
 
 typedef struct StartKeyGenRes {
   struct OwnedString seed;
@@ -291,6 +291,10 @@ uintptr_t multisig_participants(const struct MultisigConfig *self);
 struct StringView multisig_participant(const struct MultisigConfig *self, uintptr_t i);
 
 const uint8_t *multisig_salt(const struct MultisigConfig *self);
+
+struct OwnedString encode_multisig_config(const struct MultisigConfig *self);
+
+struct CResult_MultisigConfig decode_multisig_config(struct StringView str);
 
 const struct MultisigConfig *multisig_config(const struct MultisigConfigWithName *self);
 
