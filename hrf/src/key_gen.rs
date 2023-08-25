@@ -20,13 +20,13 @@ use crate::*;
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct MultisigConfig {
   multisig_name: String,
-  threshold: u16,
-  participants: Vec<String>,
+  pub(crate) threshold: u16,
+  pub(crate) participants: Vec<String>,
   // TODO: The wallet MUST check this salt hasn't been prior observed in any prior protocol.
   // It's probably fine in practice since every honest user will use a distinct seed entirely,
   // and malicious parties are already accounted for in the threshold selection.
   // It's still best practice for the wallet to save prior seen salts and check
-  salt: [u8; 32],
+  pub(crate) salt: [u8; 32],
 }
 
 impl MultisigConfig {

@@ -65,6 +65,8 @@
 
 #define INVALID_PREPROCESS_ERROR 70
 
+#define FEE_ERROR 71
+
 #define INVALID_PARTICIPANTS_AMOUNT_ERROR 81
 
 #define DUPLICATED_PARTICIPANT_ERROR 82
@@ -253,6 +255,7 @@ typedef struct CResult_StartResharerRes {
 
 typedef struct StartResharedRes {
   uintptr_t resharers_len;
+  struct MultisigConfig *multisig_config;
   struct OpaqueResharedMachine *machine;
   struct OwnedString encoded;
 } StartResharedRes;
@@ -261,6 +264,16 @@ typedef struct CResult_StartResharedRes {
   struct StartResharedRes *value;
   uint8_t err;
 } CResult_StartResharedRes;
+
+typedef struct ResharedRes {
+  struct MultisigConfig *config;
+  struct ThresholdKeysWrapper keys;
+} ResharedRes;
+
+typedef struct CResult_ResharedRes {
+  struct ResharedRes *value;
+  uint8_t err;
+} CResult_ResharedRes;
 
 #ifdef __cplusplus
 extern "C" {
@@ -389,15 +402,16 @@ struct CResult_ResharerConfig decode_resharer_config(struct StringView config);
 struct CResult_StartResharerRes start_resharer(const struct ThresholdKeysWrapper *keys,
                                                struct ResharerConfig *config);
 
-struct CResult_StartResharedRes start_reshared(struct ResharerConfig *resharer_config,
+struct CResult_StartResharedRes start_reshared(struct MultisigConfig *existing_multisig_config,
+                                               struct ResharerConfig *resharer_config,
                                                struct StringView my_name,
                                                const struct StringView *resharer_starts);
 
 struct CResult_OwnedString complete_resharer(struct StartResharerRes machine,
                                              const struct StringView *encryption_keys_of_reshared_to);
 
-struct CResult_ThresholdKeysWrapper complete_reshared(struct StartResharedRes prior,
-                                                      const struct StringView *resharer_completes);
+struct CResult_ResharedRes complete_reshared(struct StartResharedRes prior,
+                                             const struct StringView *resharer_completes);
 
 #ifdef __cplusplus
 } // extern "C"

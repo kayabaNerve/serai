@@ -14,7 +14,7 @@ use ::frost::dkg::{
 use base64ct::{Encoding, Base64};
 use serde::{Serialize, Deserialize};
 
-use crate::*;
+use crate::{*, key_gen::*};
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub struct ResharerConfig {
@@ -233,20 +233,28 @@ struct OpaqueResharedMachine(ResharedMachine<Secp256k1>);
 #[repr(C)]
 pub struct StartResharedRes {
   resharers_len: usize,
+  multisig_config: Box<MultisigConfig>,
   machine: Box<OpaqueResharedMachine>,
   encoded: OwnedString,
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn start_reshared(
+  existing_multisig_config: Box<MultisigConfig>,
   resharer_config: Box<ResharerConfig>,
   my_name: StringView,
   resharer_starts: *const StringView,
 ) -> CResult<StartResharedRes> {
-  CResult::new(start_reshared_rust(resharer_config, my_name, resharer_starts))
+  CResult::new(start_reshared_rust(
+    existing_multisig_config,
+    resharer_config,
+    my_name,
+    resharer_starts,
+  ))
 }
 
 fn start_reshared_rust(
+  existing_multisig_config: Box<MultisigConfig>,
   resharer_config: Box<ResharerConfig>,
   my_name: StringView,
   resharer_starts: *const StringView,
@@ -297,7 +305,13 @@ fn start_reshared_rust(
     Err(INVALID_RESHARER_MSG_ERROR)?
   };
 
+  let mut multisig_config = existing_multisig_config;
+  multisig_config.threshold = resharer_config.new_threshold;
+  multisig_config.participants = resharer_config.new_participants.clone();
+  multisig_config.salt = resharer_config.salt;
+
   Ok(StartResharedRes {
+    multisig_config,
     resharers_len: resharer_config.resharers.len(),
     machine: Box::new(OpaqueResharedMachine(machine)),
     encoded: OwnedString::new(Base64::encode_string(&msg.serialize())),
@@ -347,18 +361,24 @@ fn complete_resharer_rust(
   )))
 }
 
+#[repr(C)]
+pub struct ResharedRes {
+  config: Box<MultisigConfig>,
+  keys: ThresholdKeysWrapper,
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn complete_reshared(
   prior: StartResharedRes,
   resharer_completes: *const StringView,
-) -> CResult<ThresholdKeysWrapper> {
+) -> CResult<ResharedRes> {
   CResult::new(complete_reshared_rust(prior, resharer_completes))
 }
 
 fn complete_reshared_rust(
   prior: StartResharedRes,
   resharer_completes: *const StringView,
-) -> Result<ThresholdKeysWrapper, u8> {
+) -> Result<ResharedRes, u8> {
   let mut msgs = vec![];
   for view in
     (unsafe { std::slice::from_raw_parts(resharer_completes, prior.resharers_len) }).iter()
@@ -373,7 +393,10 @@ fn complete_reshared_rust(
     msgs.push(msg);
   }
 
-  Ok(ThresholdKeysWrapper(ThresholdKeys::new(
-    prior.machine.0.accept_shares(&mut OsRng, msgs).map_err(|_| INVALID_RESHARER_MSG_ERROR)?,
-  )))
+  Ok(ResharedRes {
+    config: prior.multisig_config,
+    keys: ThresholdKeysWrapper(ThresholdKeys::new(
+      prior.machine.0.accept_shares(&mut OsRng, msgs).map_err(|_| INVALID_RESHARER_MSG_ERROR)?,
+    )),
+  })
 }
