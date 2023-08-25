@@ -447,7 +447,7 @@ mod lib {
     }
 
     /// Return all participants' verification shares without any offsetting.
-    pub(crate) fn verification_shares(&self) -> HashMap<Participant, C::G> {
+    pub fn verification_shares(&self) -> HashMap<Participant, C::G> {
       self.core.verification_shares()
     }
 
