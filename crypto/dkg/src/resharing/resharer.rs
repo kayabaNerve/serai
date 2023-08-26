@@ -79,6 +79,7 @@ impl<C: Ciphersuite> ResharingMachine<C> {
 
     coefficients.push(self.share);
     commitments.push(C::generator() * coefficients[0].deref());
+    cached_msg.extend(commitments[0].to_bytes().as_ref());
     for i in 1 .. t {
       // Step 1: Generate t random values to form a polynomial with
       coefficients.push(Zeroizing::new(C::random_nonzero_F(&mut *rng)));
