@@ -256,6 +256,7 @@ typedef struct CResult_StartResharerRes {
 typedef struct StartResharedRes {
   uintptr_t resharers_len;
   struct MultisigConfig *multisig_config;
+  uint16_t my_i;
   struct OpaqueResharedMachine *machine;
   struct OwnedString encoded;
 } StartResharedRes;

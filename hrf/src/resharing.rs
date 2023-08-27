@@ -234,6 +234,7 @@ struct OpaqueResharedMachine(ResharedMachine<Secp256k1>);
 pub struct StartResharedRes {
   resharers_len: usize,
   multisig_config: Box<MultisigConfig>,
+  my_i: u16,
   machine: Box<OpaqueResharedMachine>,
   encoded: OwnedString,
 }
@@ -274,24 +275,22 @@ fn start_reshared_rust(
   }
 
   let my_name = my_name.to_string().ok_or(INVALID_NAME_ERROR)?;
+  let my_i = u16::try_from(
+    resharer_config
+      .new_participants
+      .iter()
+      .position(|name| name == &my_name)
+      .ok_or(INVALID_PARTICIPANT_ERROR)?,
+  )
+  .unwrap() +
+    1;
   let Ok((machine, msg)) = ResharedMachine::new(
     &mut OsRng,
     u16::try_from(resharer_config.resharers.len()).unwrap(),
     ThresholdParams::new(
       resharer_config.new_threshold,
       u16::try_from(resharer_config.new_participants.len()).unwrap(),
-      Participant::new(
-        u16::try_from(
-          resharer_config
-            .new_participants
-            .iter()
-            .position(|name| name == &my_name)
-            .ok_or(INVALID_PARTICIPANT_ERROR)?,
-        )
-        .unwrap() +
-          1,
-      )
-      .unwrap(),
+      Participant::new(my_i).unwrap(),
     )
     .unwrap(),
     resharer_config.context(),
@@ -308,6 +307,7 @@ fn start_reshared_rust(
       salt: resharer_config.salt,
     }),
     resharers_len: resharer_config.resharers.len(),
+    my_i,
     machine: Box::new(OpaqueResharedMachine(machine)),
     encoded: OwnedString::new(Base64::encode_string(&msg.serialize())),
   })
@@ -381,8 +381,10 @@ fn complete_reshared_rust(
   {
     let bytes = Base64::decode_vec(&view.to_string().ok_or(INVALID_ENCODING_ERROR)?)
       .map_err(|_| INVALID_ENCODING_ERROR)?;
+    let mut map: HashMap<u16, Vec<u8>> =
+      bincode::deserialize(&bytes).map_err(|_| INVALID_ENCODING_ERROR)?;
     let msg = EncryptedMessage::<Secp256k1, SecretShare<<Secp256k1 as Ciphersuite>::F>>::read(
-      &mut bytes.as_slice(),
+      &mut map.remove(&prior.my_i).ok_or(INVALID_RESHARER_MSG_ERROR)?.as_slice(),
       ThresholdParams::new(1, 1, Participant::new(1).unwrap()).unwrap(),
     )
     .map_err(|_| INVALID_RESHARER_MSG_ERROR)?;
