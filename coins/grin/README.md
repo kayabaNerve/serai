@@ -44,7 +44,10 @@ the requirements for alternate solutions.
 
 We need to actively participate in such TXs for them to even appear on-chain.
 
-This can be successfully performed as follows:
+### Single-interaction Variant
+
+This can be performed with just a single interaction as follows:
+
 1) Users create an output to an independent private key, which they intend to
    transfer to Serai.
 2) Users perform a Dealer KG of the output's private key to the Serai validator
@@ -53,6 +56,8 @@ This can be successfully performed as follows:
    generation protocol *and* the InInstruction for the transaction. They then
    transfer the output to their own key. If they do not do so in a timely
    manner, the user can simply spend the output back to themselves.
+
+Note the validator set would be able to steal coins without identifiability.
 
 ## Scanning of on-chain TXs
 
