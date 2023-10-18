@@ -164,6 +164,12 @@ of sriGRIN. If the network's utilization of allocated stake is at capacity
 however, we'd be unable to mint sriGRIN for refund purposes. This forces UIs to
 check in advance to prevent loss of funds due to errors from being at capacity.
 
+The other option would be to statically keep the output, not scheduling it as
+traditional (which likely should already be done for refunds) for the user to
+provide a `raG, maG, fee` for at any point in time. The issue is we can't
+identify if the user didn't provide on time or were censored, letting the
+multisig steal such outputs.
+
 ## Summary
 
 Serai should be able to interactively receive GRIN, verifiably, with:
