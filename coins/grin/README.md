@@ -14,6 +14,9 @@ Grin TXs are interactive, with the following flow:
 3) Alice verifies `sb`, can produce and add `sa`, and then publish the
    transaction on-chain.
 
+Please note masks are effectively private keys, and this document refers to them
+as such.
+
 This creates several difficulties when discussing an integration. To discuss the
 traditional Serai flow:
 
@@ -59,6 +62,14 @@ This can be performed with just a single interaction as follows:
 
 Note the validator set would be able to steal coins without identifiability.
 
+### Interactive Variant
+
+The traditional flow for a Grin TX occurs with Serai taking the role of Bob.
+Users would receive `rbG, sb`, and set `mbG` to `K`, Serai's multisig's key.
+
+Compared to the prior variant, this would require users be able to extract the
+signature from Serai's tributary.
+
 ## Scanning of on-chain TXs
 
 The first question is how does Grin, traditionally, scan on-chain transactions.
@@ -75,31 +86,16 @@ adapted:
    (an 8.6 GB data-set, which could be reused across multisigs).
 2) Don't receive to `K`. Instead, receive to `K+b`, where `b` is some bucket
    determinant. If we define 16 buckets, we'd have to perform 16 lookups instead
-   of one, yet we can shrink the size of the lookup table by 16 (from 8.6 GB to
-   537 MB). The suggested bucketing algorithm is the bottom bits of the amount,
-   leaving us only to recover the top bytes.
+   of one, yet we can shrink the size of the lookup table by a factor of 16
+   (from 8.6 GB to 537 MB). The suggested bucketing algorithm is the bottom bits
+   of the amount, leaving us only to recover the top bytes.
 
 ## Burns
 
 At some point, users specify an 'address' to send the underlying GRIN to as they
 burn their sriGRIN.
 
-### Serai being Alice (minimally-interactive)
-
-If, on creation of Serai's own outputs, Serai *pre-selects* its nonce
-(requiring a DKG, a O(n^2) operation, in order to be robust), then the user can
-select `fee` and immediately provide `rbG, mbG, sb`. This would let Serai
-execute a robust signing protocol, publish the transaction, and with it, remove
-interactivity requirements when sending out.
-
-Unfortunately, this would require being able to lock usage of an input *and*
-would only let us satisfy one output with an input at a time. In order to
-prevent a backlog from forming, Serai needs to be able to execute outputs in
-*logarithmic time*.
-
 ### Serai being Bob
-
-The next idea would be to define an extended protocol.
 
 1) Burns would take the role of Alice, providing `raG, maG, indidivual_fee`.
 2) Serai would create `rb` with a DKG.
@@ -110,8 +106,6 @@ The next idea would be to define an extended protocol.
    a robust signing protocol. The users who don't respond in time would be
    refunded (by inclusion of an `InInstruction` in the `Batch` for the block
    with the outputs for the other users).
-
-This may be viable.
 
 ### Serai being Bob (non-exponential)
 
@@ -126,8 +120,31 @@ is `raG, maG, fee`, then Serai can produce `sb` signatures for its eventual
 outputs. Then, these must be communicated to the user, who has to complete the
 signature and publish the TX themselves.
 
-A malicious multisig would be able to steal these outputs. I cannot personally
-comment if this would be detectable.
+A malicious multisig would be able to steal these outputs by producing a
+distinct `sb` before the user completes the signature themselves (one
+complimentary to the malicious attacker's 'Alice').
+
+### Serai being Alice
+
+Like the prior protocol, upon a `Burn` event containing
+`rbG, mbG, fee`, Serai would create outputs which are 1:1 with the necessary
+`Burn`s. Then, Serai would execute a DKG (an O(n^2) operation) to obtain the
+nonce it'll use to transfer those outputs (`raG`).
+
+A user would read this nonce and then provide `sb`.
+
+Serai would execute a robust signing protocol using the nonce from the prior
+DKG.
+
+This would be verifiable. Unfortunately, this isn't guaranteed to terminate
+UNLESS the user is refunded sriGRIN if their response doesn't occur in a timely
+manner.
+
+A malicious multisig could lie and claim they didn't receive a response if a
+timely manner, yet doing so would solely be a censorship attack. No actual
+theft could occur without leading to slash, letting social consensus handle the
+issue. We would need to ensure the sriGRIN refund doesn't error due to capacity
+limits however.
 
 ## Verifying Burns On-Chain
 
@@ -140,28 +157,30 @@ guarantee a `Burn` to an external party appears on-chain in the first place.
 We'd have to confirm some degree of data-availability for `sb` and then call it
 a day.
 
-## Multisig Rotation
+## Refunds
 
-TODO
+It'd likely be best to not support refunds on error, forcing refunds in the form
+of sriGRIN. If the network's utilization of allocated stake is at capacity
+however, we'd be unable to mint sriGRIN for refund purposes. This forces UIs to
+check in advance to prevent loss of funds due to errors from being at capacity.
 
 ## Summary
 
-If we add a data pipeline, with a spam proof such as Tor's recent efforts on
-PoW, for validators to receive off-chain data and act on it, we can get
-transferred outputs with solely one message passed from sender to receiver. We
-can also use a non-robust (and O(n)) signing protocol to take ownership of said
-output.
+Serai should be able to interactively receive GRIN, verifiably, with:
 
-For `Burn`s out, we're able to create dedicated outputs per-Burn and use a
-non-robust signing protocol to produce `sb` signature shares. This would let
-users claim their received outputs, yet the most verification Serai could do is
-that a `sb` signature share was produced. It'd be unable to verify the user's
-successful claiming, as they user may never claim the output, and it *may* be
-unable to detect if after the `sb` signature share is produced, the validator
-set turns malicious and steals the output. More research is needed here.
+1) A way for users to trigger the signing protocol to receive on the Tributary
+2) A way for users to read the results of said signing protocol
 
-A better solution to on-chain scanning (which doesn't require a half GB lookup
-table) is desirable.
+Serai should be able to interactively send GRIN, verifiably, with:
 
-Review in general of if this is sane, of what improvements can be made, and if
-something is wrong would be appreciated.
+1) A robust signing protocol, incurring a O(n^2) execution cost
+2) A way for users to publish their signature shares onto Serai
+
+We'd also require a spam proof, such as Tor's recent efforts on PoW.
+
+## Questions
+
+- Are these schemes impacted by Wagner's at all? Should users also use a
+  binomial nonce?
+- Is there a better solution to on-chain scanning, one which doesn't require a
+  half GB lookup table?
