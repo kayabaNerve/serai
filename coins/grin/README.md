@@ -1,3 +1,15 @@
+# Security Notice
+
+The below document is insecure due to proposing reuse of commitment masks.
+
+Grin protects against key cancellation attacks by relying on Bulletproofs as a
+Proof of Knowledge fo reach individual commitment. That doesn't prevent a
+Bulletproof from being re-used, and Grin doesn't appear to be sufficiently
+session-binding (due to the design of solely being the current UTXO set).
+
+A MPC scheme for the Bulletproofs would also be needed to allow proving without
+revealing the mask.
+
 # Grin
 
 Grin TXs are interactive, with the following flow:
