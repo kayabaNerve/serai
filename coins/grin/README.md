@@ -1,15 +1,3 @@
-# Security Notice
-
-The below document is insecure due to proposing reuse of commitment masks.
-
-Grin protects against key cancellation attacks by relying on Bulletproofs as a
-Proof of Knowledge fo reach individual commitment. That doesn't prevent a
-Bulletproof from being re-used, and Grin doesn't appear to be sufficiently
-session-binding (due to the design of solely being the current UTXO set).
-
-A MPC scheme for the Bulletproofs would also be needed to allow proving without
-revealing the mask.
-
 # Grin
 
 Grin TXs are interactive, with the following flow:
@@ -59,6 +47,28 @@ the requirements for alternate solutions.
 
 We need to actively participate in such TXs for them to even appear on-chain.
 
+Unfortunately, Serai can not use a single multisig private key due to key
+cancellation attacks. If Serai created two outputs, with the same key (serving
+as the mask), one output could be used to spend the other.
+
+Additive offsets would also be ineffective as `K - (K + public_offset)` would
+leave a known key of `public_offset`.
+
+Multiplicative products may work, if the factor used cannot be replicated by
+input/output quantity. Serai already perfectly orders transactions out, yet
+would also be responsible for perfectly ordering transactions in in order to
+ensure no two transactions in share a key.
+
+Fully independent keys would also work, yet would require a O(n^2) DKG which
+would reduce fault tolerance. Serai multisig's require 100% participation to
+create them in order to ensure any 67% can access the multisig. Ad-hoc key
+generation would require a fault-tolerant protocol, yet that would be by not
+including some validators in some multisigs. That means certain 67%s of the
+relevant Serai validator set would not be able to access certain multisigs.
+
+This would not effect the pipeline on receiving external coins. On send, much
+more resources would be used, yet the pipeline also should remain the same.
+
 ### Single-interaction Variant
 
 This can be performed with just a single interaction as follows:
@@ -69,7 +79,7 @@ This can be performed with just a single interaction as follows:
    set.
 3) The Serai validator set receives the threshold shares of the dealer key
    generation protocol *and* the InInstruction for the transaction. They then
-   transfer the output to their own key. If they do not do so in a timely
+   transfer the output to a key they control. If they do not do so in a timely
    manner, the user can simply spend the output back to themselves.
 
 Note the validator set would be able to steal coins without identifiability.
@@ -77,30 +87,25 @@ Note the validator set would be able to steal coins without identifiability.
 ### Interactive Variant
 
 The traditional flow for a Grin TX occurs with Serai taking the role of Bob.
-Users would receive `rbG, sb`, and set `mbG` to `K`, Serai's multisig's key.
+Users would receive `rbG, mbG, sb`.
 
-Compared to the prior variant, this would require users be able to extract the
-signature from Serai's tributary.
+Compared to the prior variant, this would require users also be able to extract
+the signature from Serai's tributary.
 
 ## Scanning of on-chain TXs
 
-The first question is how does Grin, traditionally, scan on-chain transactions.
-They may have a solution present here voiding the following commentary. Without
-any actual knowledge of how Grin wallets have been built, the following idea is
-posited.
+Grin traditionally is able to determine the amount in a commitment by rewinding
+the Bulletproof associated with it. That may or may not be possible in a MPC
+setting. The following idea, which isn't premised on utilization of the
+Bulletproof, is posited.
 
-If we consistently use the key `K` to receive coins, we can identify which
-outputs (commitments) belong to us. We couldn't identify their amount however.
-Grin, with a circulating supply of ~150m could have the following solution
-adapted:
+Grin has a circulating supply of ~150m.
 
 1) Only receive whole Grin amounts. This would only leave a 2**28 search space
    (an 8.6 GB data-set, which could be reused across multisigs).
-2) Don't receive to `K`. Instead, receive to `K+b`, where `b` is some bucket
-   determinant. If we define 16 buckets, we'd have to perform 16 lookups instead
-   of one, yet we can shrink the size of the lookup table by a factor of 16
-   (from 8.6 GB to 537 MB). The suggested bucketing algorithm is the bottom bits
-   of the amount, leaving us only to recover the top bytes.
+2) Perform 16 lookups instead of 1, shrinking the size of the lookup table to
+   537 MB. Subtracting 1 ..= 16 * H and performing 4 halvings (shifting the
+   amount down) would suffice.
 
 ## Burns
 
@@ -110,7 +115,7 @@ burn their sriGRIN.
 ### Serai being Bob
 
 1) Burns would take the role of Alice, providing `raG, maG, indidivual_fee`.
-2) Serai would create `rb` with a DKG.
+2) Serai would create `rb` with a DKG (and possibly `mb`).
 3) Users would publish signatures for all possible combinations of Burns which
    are actually moved forward with, assuming their own participation. This has
    exponential complexity, mandating a low-amount of outputs per batch.
@@ -148,15 +153,18 @@ A user would read this nonce and then provide `sb`.
 Serai would execute a robust signing protocol using the nonce from the prior
 DKG.
 
-This would be verifiable. Unfortunately, this isn't guaranteed to terminate
-UNLESS the user is refunded sriGRIN if their response doesn't occur in a timely
-manner.
+If the user doesn't provide `sb` in time, which may happen due to the user
+going offline or due to censorship *with no way to tell the two apart*, the
+multisig would trigger a refund for the user in the form of sriGRIN. This would
+be verifiable thanks to its termination.
 
-A malicious multisig could lie and claim they didn't receive a response if a
-timely manner, yet doing so would solely be a censorship attack. No actual
-theft could occur without leading to slash, letting social consensus handle the
-issue. We would need to ensure the sriGRIN refund doesn't error due to capacity
-limits however.
+If a user is censored, no actual theft could occur without leading to slash.
+Users would be able to retry later (minus the fees lost from the attempted
+burn). If a validator set censors over a long period of time, social consensus
+would be needed to handle the issue.
+
+One caveat is the sriGRIN refund may error if Serai's Grin validator set is at
+capacity and unable to mint further sriGRIN. This would need to be handled.
 
 ## Verifying Burns On-Chain
 
@@ -176,11 +184,10 @@ of sriGRIN. If the network's utilization of allocated stake is at capacity
 however, we'd be unable to mint sriGRIN for refund purposes. This forces UIs to
 check in advance to prevent loss of funds due to errors from being at capacity.
 
-The other option would be to statically keep the output, not scheduling it as
-traditional (which likely should already be done for refunds) for the user to
-provide a `raG, maG, fee` for at any point in time. The issue is we can't
-identify if the user didn't provide on time or were censored, letting the
-multisig steal such outputs.
+The other option would be to permanently keep and offer the output for the user
+to provide a `raG, maG, fee` for at any point in time. The issue here is this
+output, with its associated data, would need to be kept across all multisigs,
+potentially forever.
 
 ## Summary
 
@@ -198,7 +205,13 @@ We'd also require a spam proof, such as Tor's recent efforts on PoW.
 
 ## Questions
 
+- Is a multiplicative-product based key derivation scheme secure?
 - Are these schemes impacted by Wagner's at all? Should users also use a
   binomial nonce?
-- Is there a better solution to on-chain scanning, one which doesn't require a
-  half GB lookup table?
+- Grin implemented a MPC Bulletproof in
+  https://github.com/mimblewimble/secp256k1-zkp/pull/24. Has this had its
+  cryptography audited?
+- Can we replace the lookup table with the traditional amount recovery based on
+  BP-rewinding strategy?
+  https://tlu.tarilabs.com/protocols/mimblewimble-mb-bp-utxo#comparison-of-the-two-bulletproof-methods
+  claims no.
