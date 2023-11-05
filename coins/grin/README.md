@@ -58,14 +58,16 @@ Wagner's algorithm, an individual key may be reused up to 255 times (for
 secp256k1). For a completely ordered set of uses, indexed by `i`, a key may be
 used as `2**i K`. While this does trivially have conflicts in a multiset
 (`2**(2i) K` == `2**i K + 2**i K`), Grin does not allow duplicated outputs
-within a transaction.
+within a transaction. Serai could simply generate thousands of keys at launch,
+enabling millions of uses. While this is a linear scheme, not sublinear, the
+factor (255) is notable enough it's likely fine. This would technically bound
+the amount of inputs received.
 
-Fully independent keys would also work, yet would require a O(n^2) DKG which
-would reduce fault tolerance. Serai multisig's traditionally require 100%
-participation to create them in order to ensure any 67% can access the multisig.
-Ad-hoc key generation would require 67% of validators perform the DKG, with
-shares still distributed to offline validators. In order to prevent invalid
-shares from being distributed, a ZK proof would be required confirming validity.
+Ad-hoc key generation would also work, yet would require a O(n^2) DKG. While
+we can, at start, achieve 100% participation, once started we only assume 67%
+participation. We'd need 67% of validators to perform the DKG, yet distributing
+shares to all validators. In order to prevent invalid shares from being
+distributed, a ZK proof would be required to confirm validity.
 
 An optimistic/fraud-proof based solution to invalid key shares is invalid as
 a malicious validator who distributes invalid shares creates an output their
