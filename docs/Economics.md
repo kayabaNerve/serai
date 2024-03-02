@@ -125,10 +125,16 @@ These fees are then used to form protocol-owned liquidity.
 
 ## Post-economic Security
 
-### Fees
+### Liquidity Providers
 
-The amount of fees charged remains the same. The fees are taken in SRI. Half
-remains in the pool, effectively being distributed to LPs, with the rest burnt.
+```
+GENESIS_SRI_TRICKLE_FEED = 180 days
+```
+
+Liquidity may be added as the capacity allows. Genesis liquidity may be removed
+without burning the SRI portion in its entirety, instead burning
+`(GENESIS_SRI_TRICKLE_FEED - days_since_security()) / GENESIS_SRI_TRICKLE_FEED`
+of the amount.
 
 ### Emissions
 
@@ -155,6 +161,21 @@ pool and validators, respectively. If unused capacity ever hits 0,
 `DISTRIBUTION = inf`, so all of the emissions will go to the validators for that
 network.
 
+### Fees
+
+The amount of fees charged remains the same. The fees are taken in SRI. Half
+remains in the pool, effectively being distributed to LPs, with the rest burnt.
+
+The intention here is to further reward all parties as usage increases. While
+burning SRI presumably increases the value of all remaining SRI, this may be
+arbitraged away as the LPs suffer impermanent loss. LPs also represent a
+minority of the network's SRI, so they're not the primary benefactor to such a
+scheme. This is why the explicit distribution exists.
+
+Validators are presumed to represent a majority of the network's SRI, and are
+entirely denominated in SRI, hence why burning SRI alone is considered
+sufficient for them.
+
 ## Social Policy
 
 Serai, as a social system, can be argued to have expectations despite the lack
@@ -165,3 +186,6 @@ As the network grows in volume, or loses users due to the fees, the fees should
 be adjusted. As the network non-sustainably incentivizes, or fails to properly
 incentivize, the block reward should be adjusted. How fees are distributed
 should also be considered, as there is an argument to entirely burn them.
+
+There is also the potential in the future to grow the SRI supply as new
+integrations occur. This is left unexplored at this time.
