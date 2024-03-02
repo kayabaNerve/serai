@@ -21,8 +21,10 @@ trusted) will start the network. They will perform a DKG and publish the initial
 addresses for Serai (over Bitcoin, Ethereum, and Monero) to receive coins with
 (BTC, ETH, DAI, and XMR, further referred to with indifference as XYZ).
 
-`GENESIS_SRI = 100,000,000.000000 SRI`
-`GENESIS_LIQUIDITY_TIME = 30 days`
+```
+GENESIS_SRI = 100,000,000.000000 SRI
+GENESIS_LIQUIDITY_TIME = 30 days
+```
 
 Over `GENESIS_LIQUIDITY_TIME`, any user will be able to provide XYZ. At the end
 of `GENESIS_LIQUIDITY_TIME`, the validators will oraclize the price of 1 XYZ
@@ -84,14 +86,16 @@ protocol-owned liquidity, making all existing LPs have more XYZ and less SRI.
 
 Emissions only start after genesis.
 
-`INITIAL_PERIOD = 30 days`
-`INITIAL_REWARD = 100,000 SRI / BLOCKS_PER_DAY`
-`LITERAL_STAKE_REQUIRED = 1.5 * sri_in_pools()`
-`EXTERNAL_STAKE_REQUIRED = LITERAL_STAKE_REQUIRED * 1.2`
-`SERAI_VALIDATORS_DESIRED_PERCENTAGE = 0.2`
-`STAKE_REQUIRED = EXTERNAL_STAKE_REQUIRED / (1 - SERAI_VALIDATORS_DESIRED_PERCENTAGE)`
-`SERAI_VALIDATORS_STAKE_DESIRED = SERAI_VALIDATORS_DESIRED_PERCENTAGE * STAKE_REQUIRED`
-`SECURE_BY = 1 year`
+```
+INITIAL_PERIOD = 30 days
+INITIAL_REWARD = 100,000 SRI / BLOCKS_PER_DAY
+LITERAL_STAKE_REQUIRED = 1.5 * sri_in_pools()
+EXTERNAL_STAKE_REQUIRED = LITERAL_STAKE_REQUIRED * 1.2
+SERAI_VALIDATORS_DESIRED_PERCENTAGE = 0.2
+STAKE_REQUIRED = EXTERNAL_STAKE_REQUIRED / (1 - SERAI_VALIDATORS_DESIRED_PERCENTAGE)
+SERAI_VALIDATORS_STAKE_DESIRED = SERAI_VALIDATORS_DESIRED_PERCENTAGE * STAKE_REQUIRED
+SECURE_BY = 1 year
+```
 
 `CURRENT_STAKE` is the amount of stake from each external network, capped at the
 amount needed for each external network to be secure (so a validator set with
@@ -128,7 +132,9 @@ remains in the pool, effectively being distributed to LPs, with the rest burnt.
 
 ### Emissions
 
-`BLOCK_REWARD = 20,000,000 SRI / BLOCKS_PER_YEAR`
+```
+BLOCK_REWARD = 20,000,000 SRI / BLOCKS_PER_YEAR
+```
 
 `BLOCK_REWARD * SERAI_VALIDATORS_DESIRED_PERCENTAGE` is distributed to the Serai
 validator set.
@@ -137,10 +143,12 @@ External networks have their proportions decided equivalently to the proportions
 of their fees. Once the network's proportion is decided, a proportion between
 the pool and the validators is decided.
 
-`DESIRED_UNUSED_CAPACITY = 0.1`
-`ACCURACY_MULTIPLIER = 10000`
-`DISTRIBUTION = (capacity_of_network() * ACCURACY_MULTIPLIER) / unused_capacity()`
-`DESIRED_DISTRIBUTION = DESIRED_UNUSED_CAPACITY * ACCURACY_MULTIPLIER`
+```
+DESIRED_UNUSED_CAPACITY = 0.1
+ACCURACY_MULTIPLIER = 10000
+DISTRIBUTION = (capacity_of_network() * ACCURACY_MULTIPLIER) / unused_capacity()
+DESIRED_DISTRIBUTION = DESIRED_UNUSED_CAPACITY * ACCURACY_MULTIPLIER
+```
 
 `DESIRED_DISTRIBUTION : DISTRIBUTION` is the ratio used to distribute to the
 pool and validators, respectively. If unused capacity ever hits 0,
