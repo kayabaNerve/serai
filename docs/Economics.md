@@ -115,11 +115,10 @@ literal evaluation of this, `SERAI_VALIDATORS_STAKE_DESIRED` is used.
 
 ### Fees
 
-The fees for a swap within a pool are 0.5% plus a slippage-based fee. While
-aggressive compared to comparables and centralized exchanges, this is argued as
-better than instant exchangers while the protocol near-exclusively offers
-specific functionality. This is a prime opportunity for the protocol to
-capitalize on.
+The fees for a swap within a pool are 0.6%. While aggressive compared to
+comparables and centralized exchanges, this is argued as better than instant
+exchangers while the protocol near-exclusively offers specific functionality.
+This is a prime opportunity for the protocol to capitalize on.
 
 These fees are then used to form protocol-owned liquidity.
 
