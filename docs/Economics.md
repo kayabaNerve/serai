@@ -87,7 +87,7 @@ protocol-owned liquidity, making all existing LPs have more XYZ and less SRI.
 Emissions only start after genesis.
 
 ```
-INITIAL_PERIOD = 30 days
+INITIAL_PERIOD = 60 days
 INITIAL_REWARD = 100,000 SRI / BLOCKS_PER_DAY
 LITERAL_STAKE_REQUIRED = 1.5 * sri_in_pools()
 EXTERNAL_STAKE_REQUIRED = LITERAL_STAKE_REQUIRED * 1.2
