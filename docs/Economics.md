@@ -28,7 +28,7 @@ GENESIS_LIQUIDITY_TIME = 30 days
 
 Over `GENESIS_LIQUIDITY_TIME`, any user will be able to provide XYZ. At the end
 of `GENESIS_LIQUIDITY_TIME`, the validators will oraclize the price of 1 XYZ
-in terms of 0.00000001 BTC (except for BTC). With the value of `sriXYZ`
+in terms of 0.00000001 BTC(except for BTC). With the value of `sriXYZ`
 considered equivalent to the value of `XYZ`, the value of each pool is
 determined. `GENESIS_SRI` is proportionately distributed.
 
@@ -38,13 +38,16 @@ Genesis is now complete. Swaps become available.
 
 ### Liquidity Providers
 
-Due to Serai's pools operating with an `xyk` formula, for `M XYZ : N SRI`, the
-only way for the XYZ portion to decrease is for SRI exogenous to the pool to
-be introduced. If SRI is swapped out from the pools, and swapped back in, it
-has a neutral effect (slightly in favor to the pool due to fees) and accordingly
-isn't considered exogenous.
+Since swaps will be available in this period and due to Serai's pools operating
+with `x * y = k` formula, for `XYZ/SRI` pair, the only way for the price to be able to
+fluctuate, exogenous SRI and XYZ is required(so that `+XYZ -SRI` and `+SRI -XYZ` is possible).
+Exogenous XYZ is not a problem since it can always come from its network. If SRI is swapped out
+from the pools and swapped back in, it has a neutral effect (slightly in favor to the pool 
+due to fees) and accordingly isn't considered exogenous.
 
-Exogenous SRI has four possible sources:
+If we call the difference between total allocated stake for a network and actual stake 
+required for the economical security for the same network `unused capacity`, 
+exogenous SRI has four possible sources:
 
 1) Circulating SRI.
 
@@ -77,10 +80,11 @@ XYZ quantity received to be greater than or equal to the initial contribution.
 
 ### Swap to Staked SRI
 
-At the median price, any external actor may swap XYZ to SRI outside of the
-pools. This SRI would be freshly minted and immediately staked to a validator
-within a set for an external network. The XYZ received would be used to form
-protocol-owned liquidity, making all existing LPs have more XYZ and less SRI.
+At the median price, any external actor may mint staked SRI directly by giving the protocol
+XYZ. This freshly minted SRI would immediately staked to a validator within a set 
+for an external network. The XYZ received would be used to form protocol-owned liquidity,
+(define protocol owned liquidity first?) making all existing LPs have more XYZ and less SRI.
+(XYZ doesn't go to LPs so why it is hinted that it is?)
 
 ### Emissions
 
@@ -99,7 +103,7 @@ SECURE_BY = 1 year
 
 `CURRENT_STAKE` is the amount of stake from each external network, capped at the
 amount needed for each external network to be secure (so a validator set with
-unused capacity only counts for the amount required to be secure).
+unused capacity only counts for the amount required to be secure). (That should be renamed RequiredStake?)
 
 The block reward from genesis till the end of `INITIAL_PERIOD` is fixed to
 `INITIAL_REWARD`. Afterwards, the block reward is
@@ -116,7 +120,7 @@ literal evaluation of this, `SERAI_VALIDATORS_STAKE_DESIRED` is used.
 ### Fees
 
 The fees for a swap within a pool are 0.6%. While aggressive compared to
-comparables and centralized exchanges, this is argued as better than instant
+comparable and centralized exchanges, this is argued as better than instant
 exchangers while the protocol near-exclusively offers specific functionality.
 This is a prime opportunity for the protocol to capitalize on.
 
@@ -145,8 +149,8 @@ BLOCK_REWARD = 20,000,000 SRI / BLOCKS_PER_YEAR
 validator set.
 
 External networks have their proportions decided equivalently to the proportions
-of their fees. Once the network's proportion is decided, a proportion between
-the pool and the validators is decided.
+of their fees(so higher the swap volume, higher the reward). Once the network's 
+proportion is decided, a proportion between the pool and the validators is decided.
 
 ```
 DESIRED_UNUSED_CAPACITY = 0.1
