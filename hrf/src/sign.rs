@@ -49,7 +49,7 @@ pub unsafe extern "C" fn address_for_keys(
   address: u32,
   change: bool,
 ) -> CResult<OwnedString> {
-  let offset = if (account == 0) && (address == 0) && (change == false) {
+  let offset = if (self.account == 0) && (self.address == 0) && (self.change == false) {
     <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
   } else {
     Secp256k1::hash_to_F(
@@ -130,15 +130,19 @@ impl OwnedPortableOutput {
 impl TryInto<ReceivedOutput> for OwnedPortableOutput {
   type Error = ();
   fn try_into(self) -> Result<ReceivedOutput, ()> {
-    let offset = Secp256k1::hash_to_F(
-      b"derivation",
-      &[
-        self.account.to_le_bytes().as_slice(),
-        &self.address.to_le_bytes(),
-        &[u8::from(self.change)],
-      ]
-      .concat(),
-    );
+    let offset = if (account == 0) && (address == 0) && (change == false) {
+      <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
+    } else {
+      Secp256k1::hash_to_F(
+        b"derivation",
+        &[
+          self.account.to_le_bytes().as_slice(),
+          &self.address.to_le_bytes(),
+          &[u8::from(self.change)],
+        ]
+        .concat(),
+      )
+    };
     let mut buf = offset.to_repr().to_vec();
     buf.extend(&self.value.to_le_bytes());
     buf.push(u8::try_from(self.script_pubkey.len()).map_err(|_| ())?);
