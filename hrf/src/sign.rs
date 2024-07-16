@@ -3,6 +3,10 @@ use std::{str::FromStr, collections::HashMap};
 use rand_core::OsRng;
 
 use transcript::{Transcript, RecommendedTranscript};
+use ciphersuite::{
+  group::ff::{Field, PrimeField},
+  Ciphersuite, Secp256k1,
+};
 use frost::{*, sign::*};
 
 use bitcoin_serai::{
@@ -41,15 +45,30 @@ impl Network {
 pub unsafe extern "C" fn address_for_keys(
   network: Network,
   keys: &ThresholdKeysWrapper,
-) -> OwnedString {
-  OwnedString::new(
-    Address::new(
-      network.to_bitcoin(),
-      address_payload(tweak_keys(&keys.0).group_key())
-        .expect("tweaked keys didn't have an address"),
+  account: u32,
+  address: u32,
+  change: bool,
+) -> CResult<OwnedString> {
+  let offset = if (account == 0) && (address == 0) && (change == false) {
+    <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
+  } else {
+    Secp256k1::hash_to_F(
+      b"derivation",
+      &[account.to_le_bytes().as_slice(), &address.to_le_bytes(), &[u8::from(change)]].concat(),
     )
-    .to_string(),
-  )
+  };
+  let keys = tweak_keys(&keys.0).offset(offset);
+  CResult::new(if keys.group_key() == tweak_keys(&keys).group_key() {
+    Ok(OwnedString::new(
+      Address::new(
+        network.to_bitcoin(),
+        address_payload(keys.group_key()).expect("tweaked keys didn't have an address"),
+      )
+      .to_string(),
+    ))
+  } else {
+    Err(INVALID_DERIVATION_ERROR)
+  })
 }
 
 #[no_mangle]
@@ -69,6 +88,9 @@ pub struct PortableOutput {
   pub value: u64,
   pub script_pubkey: *const u8,
   pub script_pubkey_len: usize,
+  pub account: u32,
+  pub address: u32,
+  pub change: bool,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -77,6 +99,9 @@ pub struct OwnedPortableOutput {
   vout: u32,
   value: u64,
   script_pubkey: Vec<u8>,
+  account: u32,
+  address: u32,
+  change: bool,
 }
 
 impl OwnedPortableOutput {
@@ -105,7 +130,16 @@ impl OwnedPortableOutput {
 impl TryInto<ReceivedOutput> for OwnedPortableOutput {
   type Error = ();
   fn try_into(self) -> Result<ReceivedOutput, ()> {
-    let mut buf = vec![0; 32];
+    let offset = Secp256k1::hash_to_F(
+      b"derivation",
+      &[
+        self.account.to_le_bytes().as_slice(),
+        &self.address.to_le_bytes(),
+        &[u8::from(self.change)],
+      ]
+      .concat(),
+    );
+    let mut buf = offset.to_repr().to_vec();
     buf.extend(&self.value.to_le_bytes());
     buf.push(u8::try_from(self.script_pubkey.len()).map_err(|_| ())?);
     buf.extend(self.script_pubkey);
@@ -250,6 +284,9 @@ fn new_sign_config_rust(
             std::slice::from_raw_parts(output.script_pubkey, output.script_pubkey_len)
           })
           .to_vec(),
+          account: output.account,
+          address: output.address,
+          change: output.change,
         })
       })
       .collect(),
