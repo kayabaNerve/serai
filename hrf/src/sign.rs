@@ -49,7 +49,7 @@ pub unsafe extern "C" fn address_for_keys(
   address: u32,
   change: bool,
 ) -> CResult<OwnedString> {
-  let offset = if (self.account == 0) && (self.address == 0) && (self.change == false) {
+  let offset = if (account == 0) && (address == 0) && (change == false) {
     <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
   } else {
     Secp256k1::hash_to_F(
@@ -130,7 +130,7 @@ impl OwnedPortableOutput {
 impl TryInto<ReceivedOutput> for OwnedPortableOutput {
   type Error = ();
   fn try_into(self) -> Result<ReceivedOutput, ()> {
-    let offset = if (account == 0) && (address == 0) && (change == false) {
+    let offset = if (self.account == 0) && (self.address == 0) && (self.change == false) {
       <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
     } else {
       Secp256k1::hash_to_F(
