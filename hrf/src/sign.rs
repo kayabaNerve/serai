@@ -41,14 +41,12 @@ impl Network {
   }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn address_for_keys(
-  network: Network,
+fn offset_keys(
   keys: &ThresholdKeysWrapper,
   account: u32,
   address: u32,
   change: bool,
-) -> CResult<OwnedString> {
+) -> Option<ThresholdKeys<Secp256k1>> {
   let offset = if (account == 0) && (address == 0) && (change == false) {
     <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
   } else {
@@ -58,7 +56,22 @@ pub unsafe extern "C" fn address_for_keys(
     )
   };
   let keys = tweak_keys(&keys.0).offset(offset);
-  CResult::new(if keys.group_key() == tweak_keys(&keys).group_key() {
+  if keys.group_key() == tweak_keys(&keys).group_key() {
+    Some(keys)
+  } else {
+    None
+  }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn address_for_keys(
+  network: Network,
+  keys: &ThresholdKeysWrapper,
+  account: u32,
+  address: u32,
+  change: bool,
+) -> CResult<OwnedString> {
+  CResult::new(if let Some(keys) = offset_keys(keys, account, address, change) {
     Ok(OwnedString::new(
       Address::new(
         network.to_bitcoin(),
@@ -72,12 +85,21 @@ pub unsafe extern "C" fn address_for_keys(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn script_pubkey_for_keys(keys: &ThresholdKeysWrapper) -> OwnedString {
-  OwnedString::new(hex::encode(
-    address_payload(tweak_keys(&keys.0).group_key())
-      .expect("tweaked keys didn't have a script_pubkey")
-      .script_pubkey(),
-  ))
+pub unsafe extern "C" fn script_pubkey_for_keys(
+  keys: &ThresholdKeysWrapper,
+  account: u32,
+  address: u32,
+  change: bool,
+) -> CResult<OwnedString> {
+  CResult::new(if let Some(keys) = offset_keys(keys, account, address, change) {
+    Ok(OwnedString::new(hex::encode(
+      address_payload(keys.group_key())
+        .expect("tweaked keys didn't have an address")
+        .script_pubkey(),
+    )))
+  } else {
+    Err(INVALID_DERIVATION_ERROR)
+  })
 }
 
 #[repr(C)]
