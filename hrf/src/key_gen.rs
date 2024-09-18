@@ -15,6 +15,8 @@ use serde::{Serialize, Deserialize};
 
 use bip39::{Language, Mnemonic};
 
+use bitcoin_serai::wallet::tweak_keys;
+
 use crate::*;
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -511,8 +513,9 @@ pub unsafe extern "C" fn keys_index(keys: &ThresholdKeysWrapper) -> u16 {
 
 #[no_mangle]
 pub unsafe extern "C" fn keys_make_safe(keys: &mut ThresholdKeysWrapper) {
-  keys.0 =
-    keys.0.offset(Secp256k1::hash_to_F(b"safe_offset", keys.0.group_key().to_bytes().as_ref()));
+  keys.0 = tweak_keys(
+    &keys.0.offset(Secp256k1::hash_to_F(b"safe_offset", keys.0.group_key().to_bytes().as_ref())),
+  );
 }
 
 #[no_mangle]
