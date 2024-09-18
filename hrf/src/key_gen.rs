@@ -7,7 +7,7 @@ use rand_chacha::ChaCha20Rng;
 
 use transcript::{Transcript, RecommendedTranscript};
 
-use ciphersuite::{Ciphersuite, Secp256k1};
+use ciphersuite::{group::GroupEncoding, Ciphersuite, Secp256k1};
 use ::frost::dkg::{*, encryption::*, frost::*};
 
 use base64ct::{Encoding, Base64};
@@ -507,6 +507,12 @@ pub unsafe extern "C" fn keys_participants(keys: &ThresholdKeysWrapper) -> u16 {
 #[no_mangle]
 pub unsafe extern "C" fn keys_index(keys: &ThresholdKeysWrapper) -> u16 {
   u16::from(keys.0.params().i()) - 1
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn keys_make_safe(keys: &mut ThresholdKeysWrapper) {
+  keys.0 =
+    keys.0.offset(Secp256k1::hash_to_F(b"safe_offset", keys.0.group_key().to_bytes().as_ref()));
 }
 
 #[no_mangle]
