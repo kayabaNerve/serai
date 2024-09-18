@@ -4,7 +4,10 @@ use rand_core::OsRng;
 
 use transcript::{Transcript, RecommendedTranscript};
 use ciphersuite::{
-  group::ff::{Field, PrimeField},
+  group::{
+    ff::{Field, PrimeField},
+    GroupEncoding,
+  },
   Ciphersuite, Secp256k1,
 };
 use frost::{*, sign::*};
@@ -52,7 +55,13 @@ fn offset_keys(
   } else {
     Secp256k1::hash_to_F(
       b"derivation",
-      &[account.to_le_bytes().as_slice(), &address.to_le_bytes(), &[u8::from(change)]].concat(),
+      &[
+        keys.0.group_key().to_bytes().as_slice(),
+        &account.to_le_bytes(),
+        &address.to_le_bytes(),
+        &[u8::from(change)],
+      ]
+      .concat(),
     )
   };
   let keys = tweak_keys(&keys.0).offset(offset);
@@ -149,32 +158,33 @@ impl OwnedPortableOutput {
   }
 }
 
-impl TryInto<ReceivedOutput> for OwnedPortableOutput {
-  type Error = ();
-  fn try_into(self) -> Result<ReceivedOutput, ()> {
-    let offset = if (self.account == 0) && (self.address == 0) && (self.change == false) {
-      <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
-    } else {
-      Secp256k1::hash_to_F(
-        b"derivation",
-        &[
-          self.account.to_le_bytes().as_slice(),
-          &self.address.to_le_bytes(),
-          &[u8::from(self.change)],
-        ]
-        .concat(),
-      )
-    };
-    let mut buf = offset.to_repr().to_vec();
-    buf.extend(&self.value.to_le_bytes());
-    buf.push(u8::try_from(self.script_pubkey.len()).map_err(|_| ())?);
-    buf.extend(self.script_pubkey);
-    for i in (0 .. 32).rev() {
-      buf.push(self.hash[i]);
-    }
-    buf.extend(&self.vout.to_le_bytes());
-    ReceivedOutput::read(&mut buf.as_slice()).map_err(|_| ())
+fn try_into(
+  keys: &ThresholdKeysWrapper,
+  output: OwnedPortableOutput,
+) -> Result<ReceivedOutput, ()> {
+  let offset = if (output.account == 0) && (output.address == 0) && (output.change == false) {
+    <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
+  } else {
+    Secp256k1::hash_to_F(
+      b"derivation",
+      &[
+        keys.0.group_key().to_bytes().as_slice(),
+        &output.account.to_le_bytes(),
+        &output.address.to_le_bytes(),
+        &[u8::from(output.change)],
+      ]
+      .concat(),
+    )
+  };
+  let mut buf = offset.to_repr().to_vec();
+  buf.extend(&output.value.to_le_bytes());
+  buf.push(u8::try_from(output.script_pubkey.len()).map_err(|_| ())?);
+  buf.extend(output.script_pubkey);
+  for i in (0 .. 32).rev() {
+    buf.push(output.hash[i]);
   }
+  buf.extend(&output.vout.to_le_bytes());
+  ReceivedOutput::read(&mut buf.as_slice()).map_err(|_| ())
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -219,13 +229,17 @@ impl SignConfig {
   }
 }
 
-fn sign_config_to_tx(network: BNetwork, config: &SignConfig) -> Result<SignableTransaction, u8> {
+fn sign_config_to_tx(
+  keys: &ThresholdKeysWrapper,
+  network: BNetwork,
+  config: &SignConfig,
+) -> Result<SignableTransaction, u8> {
   SignableTransaction::new(
     config
       .inputs
       .iter()
       .cloned()
-      .map(|input| (*input).try_into())
+      .map(|input| try_into(keys, *input))
       .collect::<Result<_, _>>()
       .map_err(|_| INVALID_OUTPUT_ERROR)?,
     &config
@@ -269,6 +283,7 @@ pub struct SignConfigRes {
 
 #[no_mangle]
 pub unsafe extern "C" fn new_sign_config(
+  keys: &ThresholdKeysWrapper,
   network: Network,
   outputs: *const PortableOutput,
   outputs_len: usize,
@@ -279,6 +294,7 @@ pub unsafe extern "C" fn new_sign_config(
   fee_per_weight: u64,
 ) -> CResult<SignConfigRes> {
   CResult::new(new_sign_config_rust(
+    keys,
     network,
     unsafe { std::slice::from_raw_parts(outputs, outputs_len) },
     unsafe { std::slice::from_raw_parts(payment_addresses, payments) },
@@ -289,6 +305,7 @@ pub unsafe extern "C" fn new_sign_config(
 }
 
 fn new_sign_config_rust(
+  keys: &ThresholdKeysWrapper,
   network: Network,
   outputs: &[PortableOutput],
   payment_addresses: &[StringView],
@@ -327,18 +344,26 @@ fn new_sign_config_rust(
     fee_per_weight,
   };
 
-  sign_config_to_tx(network, &config)?;
+  sign_config_to_tx(keys, network, &config)?;
 
   let res = Base64::encode_string(&bincode::serialize(&config).unwrap());
   Ok(SignConfigRes { config: config.into(), encoded: OwnedString::new(res) })
 }
 
 #[no_mangle]
-pub extern "C" fn decode_sign_config(network: Network, encoded: StringView) -> CResult<SignConfig> {
-  CResult::new(decode_sign_config_rust(network, encoded))
+pub extern "C" fn decode_sign_config(
+  keys: &ThresholdKeysWrapper,
+  network: Network,
+  encoded: StringView,
+) -> CResult<SignConfig> {
+  CResult::new(decode_sign_config_rust(keys, network, encoded))
 }
 
-fn decode_sign_config_rust(network: Network, encoded: StringView) -> Result<SignConfig, u8> {
+fn decode_sign_config_rust(
+  keys: &ThresholdKeysWrapper,
+  network: Network,
+  encoded: StringView,
+) -> Result<SignConfig, u8> {
   let network = network.to_bitcoin();
   let decoded = bincode::deserialize::<SignConfig>(
     &Base64::decode_vec(&encoded.to_string().ok_or(INVALID_ENCODING_ERROR)?)
@@ -348,7 +373,7 @@ fn decode_sign_config_rust(network: Network, encoded: StringView) -> Result<Sign
   if decoded.network != network {
     Err(INVALID_NETWORK_ERROR)?;
   }
-  sign_config_to_tx(network, &decoded)?;
+  sign_config_to_tx(keys, network, &decoded)?;
   Ok(decoded)
 }
 
@@ -373,7 +398,7 @@ fn attempt_sign_rust(
   keys: &ThresholdKeysWrapper,
   config: &SignConfig,
 ) -> Result<AttemptSignRes, u8> {
-  let (machine, preprocesses) = sign_config_to_tx(config.network, config)
+  let (machine, preprocesses) = sign_config_to_tx(keys, config.network, config)
     .expect("created a SignConfig which couldn't create a TX")
     .multisig(tweak_keys(&keys.0), RecommendedTranscript::new(b"HRF Sign Transaction"))
     .ok_or(WRONG_KEYS_ERROR)?

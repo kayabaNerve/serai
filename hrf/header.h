@@ -332,8 +332,6 @@ uint16_t keys_participants(const struct ThresholdKeysWrapper *keys);
 
 uint16_t keys_index(const struct ThresholdKeysWrapper *keys);
 
-uint16_t keys_make_safe(struct ThresholdKeysWrapper *keys);
-
 struct OwnedString serialize_keys(const struct ThresholdKeysWrapper *keys);
 
 struct CResult_ThresholdKeysWrapper deserialize_keys(struct StringView keys);
@@ -366,7 +364,8 @@ struct StringView sign_change(const struct SignConfig *self);
 
 uint64_t sign_fee_per_weight(const struct SignConfig *self);
 
-struct CResult_SignConfigRes new_sign_config(enum Network network,
+struct CResult_SignConfigRes new_sign_config(const struct ThresholdKeysWrapper *keys,
+                                             enum Network network,
                                              const struct PortableOutput *outputs,
                                              uintptr_t outputs_len,
                                              uintptr_t payments,
@@ -375,7 +374,8 @@ struct CResult_SignConfigRes new_sign_config(enum Network network,
                                              struct StringView change,
                                              uint64_t fee_per_weight);
 
-struct CResult_SignConfig decode_sign_config(enum Network network, struct StringView encoded);
+struct CResult_SignConfig decode_sign_config(const struct ThresholdKeysWrapper *keys,
+                                             enum Network network, struct StringView encoded);
 
 struct CResult_AttemptSignRes attempt_sign(const struct ThresholdKeysWrapper *keys,
                                            const struct SignConfig *config);
