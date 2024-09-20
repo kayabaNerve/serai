@@ -49,14 +49,16 @@ fn offset_keys(
   account: u32,
   address: u32,
   change: bool,
+  secure: bool,
 ) -> Option<ThresholdKeys<Secp256k1>> {
   let offset = if (account == 0) && (address == 0) && (change == false) {
     <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
   } else {
+    let key_bytes = keys.0.group_key().to_bytes();
     Secp256k1::hash_to_F(
       b"derivation",
       &[
-        keys.0.group_key().to_bytes().as_slice(),
+        if secure { key_bytes.as_slice() } else { &[] },
         &account.to_le_bytes(),
         &address.to_le_bytes(),
         &[u8::from(change)],
@@ -79,8 +81,9 @@ pub unsafe extern "C" fn address_for_keys(
   account: u32,
   address: u32,
   change: bool,
+  secure: bool,
 ) -> CResult<OwnedString> {
-  CResult::new(if let Some(keys) = offset_keys(keys, account, address, change) {
+  CResult::new(if let Some(keys) = offset_keys(keys, account, address, change, secure) {
     Ok(OwnedString::new(
       Address::new(
         network.to_bitcoin(),
@@ -99,8 +102,9 @@ pub unsafe extern "C" fn script_pubkey_for_keys(
   account: u32,
   address: u32,
   change: bool,
+  secure: bool,
 ) -> CResult<OwnedString> {
-  CResult::new(if let Some(keys) = offset_keys(keys, account, address, change) {
+  CResult::new(if let Some(keys) = offset_keys(keys, account, address, change, secure) {
     Ok(OwnedString::new(hex::encode(
       address_payload(keys.group_key())
         .expect("tweaked keys didn't have an address")
@@ -122,6 +126,7 @@ pub struct PortableOutput {
   pub account: u32,
   pub address: u32,
   pub change: bool,
+  pub secure: bool,
 }
 
 #[derive(Clone, PartialEq, Eq, Debug, Serialize, Deserialize)]
@@ -133,6 +138,7 @@ pub struct OwnedPortableOutput {
   account: u32,
   address: u32,
   change: bool,
+  secure: bool,
 }
 
 impl OwnedPortableOutput {
@@ -165,10 +171,11 @@ fn try_into(
   let offset = if (output.account == 0) && (output.address == 0) && (output.change == false) {
     <<Secp256k1 as Ciphersuite>::F as Field>::ZERO
   } else {
+    let key_bytes = keys.0.group_key().to_bytes();
     Secp256k1::hash_to_F(
       b"derivation",
       &[
-        keys.0.group_key().to_bytes().as_slice(),
+        if output.secure { key_bytes.as_slice() } else { &[] },
         &output.account.to_le_bytes(),
         &output.address.to_le_bytes(),
         &[u8::from(output.change)],
@@ -330,6 +337,7 @@ fn new_sign_config_rust(
           account: output.account,
           address: output.address,
           change: output.change,
+          secure: output.secure,
         })
       })
       .collect(),

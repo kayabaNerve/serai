@@ -198,6 +198,7 @@ typedef struct PortableOutput {
   uint32_t account;
   uint32_t address;
   bool change;
+  bool secure;
 } PortableOutput;
 
 typedef struct CResult_SignConfig {
@@ -336,9 +337,9 @@ struct OwnedString serialize_keys(const struct ThresholdKeysWrapper *keys);
 
 struct CResult_ThresholdKeysWrapper deserialize_keys(struct StringView keys);
 
-struct CResult_OwnedString address_for_keys(enum Network network, const struct ThresholdKeysWrapper *keys, uint32_t account, uint32_t address, bool change);
+struct CResult_OwnedString address_for_keys(enum Network network, const struct ThresholdKeysWrapper *keys, uint32_t account, uint32_t address, bool change, bool secure);
 
-struct OwnedString script_pubkey_for_keys(const struct ThresholdKeysWrapper *keys, uint32_t account, uint32_t address, bool change);
+struct OwnedString script_pubkey_for_keys(const struct ThresholdKeysWrapper *keys, uint32_t account, uint32_t address, bool change, bool secure);
 
 const uint8_t *output_hash(const struct OwnedPortableOutput *self);
 
