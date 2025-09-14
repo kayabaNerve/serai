@@ -16,9 +16,6 @@ rustdoc-args = ["--cfg", "docsrs"]
 [dependencies]
 zeroize = { version = "1", default-features = false, features = ["alloc"] }
 
-dleq = { path = "../../crypto/dleq", default-features = false }
-schnorr-signatures = { path = "../../crypto/schnorr", default-features = false }
-
 dkg = { path = "../../crypto/dkg", default-features = false }
 # modular-frost = { path = "../../crypto/frost", default-features = false }
 

@@ -34,8 +34,8 @@ ciphersuite = { version = "^0.4.1", features = ["std"] }
 
 multiexp = { version = "0.4", features = ["batch"] }
 
-schnorr = { package = "schnorr-signatures", path = "../schnorr", version = "^0.5.1" }
-dleq = { path = "../dleq", version = "^0.4.1", features = ["serialize"] }
+schnorr = { package = "schnorr-signatures", version = "^0.5.1" }
+dleq = { version = "^0.4.1", features = ["serialize"] }
 
 dkg = { path = "../dkg", version = "^0.5.1" }
 

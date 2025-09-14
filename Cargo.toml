@@ -1,8 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-  "crypto/schnorr",
-  "crypto/dleq",
   "crypto/dkg",
   "crypto/frost",
 

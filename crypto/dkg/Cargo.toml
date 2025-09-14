@@ -30,8 +30,8 @@ chacha20 = { version = "0.9", default-features = false, features = ["zeroize"] }
 ciphersuite = { version = "^0.4.1", default-features = false }
 multiexp = { version = "0.4", default-features = false }
 
-schnorr = { package = "schnorr-signatures", path = "../schnorr", version = "^0.5.1", default-features = false }
-dleq = { path = "../dleq", version = "^0.4.1", default-features = false }
+schnorr = { package = "schnorr-signatures", version = "^0.5.1", default-features = false }
+dleq = { version = "^0.4.1", default-features = false }
 
 [dev-dependencies]
 rand_core = { version = "0.6", default-features = false, features = ["getrandom"] }

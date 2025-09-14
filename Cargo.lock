@@ -424,19 +424,15 @@ dependencies = [
 [[package]]
 name = "dleq"
 version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8d3af08cb0a3253930b6b9629fd61202ea34da117940b59ab58f3e6f5e1ba6c"
 dependencies = [
- "blake2",
- "dalek-ff-group",
  "digest",
  "ff",
  "flexible-transcript",
  "group",
- "hex-literal",
- "k256",
- "multiexp",
  "rand_core",
  "rustversion",
- "thiserror",
  "zeroize",
 ]
 
@@ -714,12 +710,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "hex-literal"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fe2267d4ed49bc07b63801559be28c718ea06c4738b7a03c94df7386d2cde46"
 
 [[package]]
 name = "hex_lit"
@@ -1492,15 +1482,14 @@ dependencies = [
 
 [[package]]
 name = "schnorr-signatures"
-version = "0.5.1"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "11fe30c28740bba75dc4649a8985861784e8a44fd636706076edb7cb2aec5765"
 dependencies = [
  "ciphersuite",
- "dalek-ff-group",
  "flexible-transcript",
- "hex",
  "multiexp",
  "rand_core",
- "sha2",
  "std-shims",
  "zeroize",
 ]
@@ -1580,8 +1569,6 @@ version = "0.1.0"
 dependencies = [
  "bitcoin-serai",
  "dkg",
- "dleq",
- "schnorr-signatures",
  "zeroize",
 ]
 
