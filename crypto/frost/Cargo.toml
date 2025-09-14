@@ -25,14 +25,14 @@ subtle = "^2.4"
 hex = { version = "0.4", optional = true }
 
 digest = "0.10"
-transcript = { package = "flexible-transcript", path = "../transcript", version = "^0.3.2", features = ["recommended"] }
+transcript = { package = "flexible-transcript", version = "^0.3.2", features = ["recommended"] }
 
-dalek-ff-group = { path = "../dalek-ff-group", version = "0.4", optional = true }
-minimal-ed448 = { path = "../ed448", version = "0.4", optional = true }
+dalek-ff-group = { version = "0.4", optional = true }
+minimal-ed448 = { version = "0.4", optional = true }
 
-ciphersuite = { path = "../ciphersuite", version = "^0.4.1", features = ["std"] }
+ciphersuite = { version = "^0.4.1", features = ["std"] }
 
-multiexp = { path = "../multiexp", version = "0.4", features = ["batch"] }
+multiexp = { version = "0.4", features = ["batch"] }
 
 schnorr = { package = "schnorr-signatures", path = "../schnorr", version = "^0.5.1" }
 dleq = { path = "../dleq", version = "^0.4.1", features = ["serialize"] }

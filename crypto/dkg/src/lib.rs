@@ -29,6 +29,7 @@ pub mod promote;
 #[cfg(any(test, feature = "tests"))]
 pub mod tests;
 
+#[cfg(feature = "std")]
 pub mod resharing;
 
 /// The ID of a participant, defined as a non-zero u16.

@@ -14,20 +14,12 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
-flexible-transcript = { path = "../../crypto/transcript", features = ["recommended", "merlin"] }
-
-dalek-ff-group = { path = "../../crypto/dalek-ff-group" }
-minimal-ed448 = { path = "../../crypto/ed448" }
-
-ciphersuite = { path = "../../crypto/ciphersuite", default-features = false, features = ["alloc", "secp256k1", "p256", "ed25519", "ristretto", "ed448"] }
-
-multiexp = { path = "../../crypto/multiexp", default-features = false, features = ["batch"] }
+zeroize = { version = "1", default-features = false, features = ["alloc"] }
 
 dleq = { path = "../../crypto/dleq", default-features = false }
 schnorr-signatures = { path = "../../crypto/schnorr", default-features = false }
 
 dkg = { path = "../../crypto/dkg", default-features = false }
 # modular-frost = { path = "../../crypto/frost", default-features = false }
-# frost-schnorrkel = { path = "../../crypto/schnorrkel", default-features = false }
 
 bitcoin-serai = { path = "../../coins/bitcoin", default-features = false, features = ["hazmat"] }

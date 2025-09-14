@@ -19,8 +19,8 @@ rand_chacha = "0.3"
 sha2 = "0.10"
 
 k256 = { version = "^0.13.1", default-features = false, features = ["std", "arithmetic", "bits"] }
-transcript = { package = "flexible-transcript", path = "../crypto/transcript", version = "0.3", features = ["recommended"] }
-ciphersuite = { path = "../crypto/ciphersuite", version = "0.4", features = ["secp256k1"] }
+transcript = { package = "flexible-transcript", version = "0.3", features = ["recommended"] }
+ciphersuite = { version = "0.4", features = ["secp256k1"] }
 frost = { package = "modular-frost", path = "../crypto/frost", version = "0.8", features = ["secp256k1"] }
 
 bitcoin-serai = { path = "../coins/bitcoin" }
