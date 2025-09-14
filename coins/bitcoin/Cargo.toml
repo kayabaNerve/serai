@@ -28,7 +28,6 @@ frost = { package = "modular-frost", path = "../../crypto/frost", version = "0.8
 hex = { version = "0.4", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
-reqwest = { version = "0.11", features = ["json"], optional = true }
 
 [dev-dependencies]
 frost = { package = "modular-frost", path = "../../crypto/frost", features = ["tests"] }
@@ -58,7 +57,6 @@ std = [
   "hex",
   "serde",
   "serde_json",
-  "reqwest"
 ]
 hazmat = []
 default = ["std"]
